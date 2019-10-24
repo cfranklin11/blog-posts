@@ -1,0 +1,72 @@
+<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Footy Tipping: Round 2</title><style>
+      * {
+        font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+      h1 {
+        font-size: 50px;
+        margin-bottom: 17px;
+        color: #333;
+      }
+      h2 {
+        font-size: 24px;
+        line-height: 1.6;
+        margin: 30px 0 0 0;
+        margin-bottom: 18px;
+        margin-top: 33px;
+        color: #333;
+      }
+      h3 {
+        font-size: 30px;
+        margin: 10px 0 20px 0;
+        color: #333;
+      }
+      header {
+        width: 640px;
+        margin: auto;
+      }
+      section {
+        width: 640px;
+        margin: auto;
+      }
+      section p {
+        margin-bottom: 27px;
+        font-size: 20px;
+        line-height: 1.6;
+        color: #333;
+      }
+      section img {
+        max-width: 640px;
+      }
+      footer {
+        padding: 0 20px;
+        margin: 50px 0;
+        text-align: center;
+        font-size: 12px;
+      }
+      .aspectRatioPlaceholder {
+        max-width: auto !important;
+        max-height: auto !important;
+      }
+      .aspectRatioPlaceholder-fill {
+        padding-bottom: 0 !important;
+      }
+      header,
+      section[data-field=subtitle],
+      section[data-field=description] {
+        display: none;
+      }
+      </style></head><body><article class="h-entry">
+<header>
+<h1 class="p-name">Footy Tipping: Round 2</h1>
+</header>
+<section data-field="subtitle" class="p-summary">
+I was planning on writing a post before the start of the AFL season with my tips for round one, but I was so busy performing emergency…
+</section>
+<section data-field="body" class="e-content">
+<section name="04d4" class="section section--body section--first section--last"><div class="section-divider"><hr class="section-divider"></div><div class="section-content"><div class="section-inner sectionLayout--insetColumn"><h3 name="1918" id="1918" class="graf graf--h3 graf--leading graf--title">Footy Tipping: Round 2</h3><figure name="167f" id="167f" class="graf graf--figure graf-after--h3"><div class="aspectRatioPlaceholder is-locked" style="max-width: 700px; max-height: 1019px;"><div class="aspectRatioPlaceholder-fill" style="padding-bottom: 145.5%;"></div><img class="graf-image" data-image-id="0*DBwpu3VydSVVwz67" data-width="2771" data-height="4032" data-unsplash-photo-id="G4ZjuxOFD8Y" data-is-featured="true" src="https://cdn-images-1.medium.com/max/800/0*DBwpu3VydSVVwz67"></div><figcaption class="imageCaption">Photo by <a href="https://unsplash.com/@andredoesphoto?utm_source=medium&amp;utm_medium=referral" data-href="https://unsplash.com/@andredoesphoto?utm_source=medium&amp;utm_medium=referral" class="markup--anchor markup--figure-anchor" rel="photo-creator noopener" target="_blank">Andre Guerra</a> on <a href="https://unsplash.com?utm_source=medium&amp;utm_medium=referral" data-href="https://unsplash.com?utm_source=medium&amp;utm_medium=referral" class="markup--anchor markup--figure-anchor" rel="photo-source noopener" target="_blank">Unsplash</a></figcaption></figure><p name="664b" id="664b" class="graf graf--p graf-after--figure">I was planning on writing a post before the start of the AFL season with my tips for round one, but I was so busy performing emergency surgery on my prediction data, that I wasn’t even able to get my model’s predictions until around 9:00 pm the night before the first match, so this is a story about the challenges of using other people’s data and not knowing how sports websites will change when they work off that softness that accrues over the offseason and get back into leaping-mark-over-some-poor-bloke’s-shoulder shape.</p><h3 name="654b" id="654b" class="graf graf--h3 graf-after--p">Data woes</h3><p name="6627" id="6627" class="graf graf--p graf-after--h3">The scramble to fix my data began the weekend before round one, when I tried to run my tipping script (which pulls match and player data from the <code class="markup--code markup--p-code">fitzRoy</code> R package, which in turn gets the data from <a href="http://www.afltables.com/" data-href="http://www.afltables.com/" class="markup--anchor markup--p-anchor" rel="noopener" target="_blank">AFL Tables</a>, and scrapes betting data from <a href="http://www.footywire.com" data-href="http://www.footywire.com" class="markup--anchor markup--p-anchor" rel="noopener" target="_blank">Footywire</a>), and I got an error for trying to merge an empty data frame on columns that it obviously didn’t have. I soon found that the <a href="https://www.afl.com.au/news/teams" data-href="https://www.afl.com.au/news/teams" class="markup--anchor markup--p-anchor" rel="noopener" target="_blank">news page</a> on the official AFL website, from which I get rosters for upcoming matches, had been updated such that the default page showed information for upcoming rounds rather than for last year’s Grand Final. This was as it should be, but what I hadn’t accounted for in my code was that this page didn’t have any data yet, because rosters don’t get announced until about a day before the start of the round, so my scraper was returning a blank array. I fixed this by replacing the data-less void with a row-less one, adorned with decorative column labels. I was then able to fetch all my data without error, but when I ran my tipping script again, I got a new blank-data error: I had no data for upcoming matches on which to predict.</p><p name="ec1d" id="ec1d" class="graf graf--p graf-after--p">How could this be? Sure, I still didn’t know who was going to play that week, but I knew who was playing whom and when and where and how they performed previously. That was definitely enough to make a few haphazard guesses about match outcomes. When I examined my tipping data set, however, matches from 2019 were conspicuously absent. I examined my player data set, and, though there were copious zeros, there were at least rows for 2019, round-one matches, which means that missing player data wasn’t the cause of these match rows getting dropped. Finally, I took a step back and looked at each of my data sources (player, match, and betting) in isolation and realised that AFL Tables didn’t have any rows for upcoming matches. I often encounter this truth when coding and just as often forget it: it’s your assumptions about your code (and data) that cause bugs, and the more fundamental the assumption, the more difficult the debugging. Appending upcoming-match data scraped from Footywire resolved the problem, and by that time, the rosters for Richmond and Carlton had been announced, so I was able to enter my preliminary tips for the week.</p><h3 name="2cd3" id="2cd3" class="graf graf--h3 graf-after--p">Round 1 retro</h3><p name="0e91" id="0e91" class="graf graf--p graf-after--h3">This proved unfortunate. It turns out that I probably would have gotten more tips by running <code class="markup--code markup--p-code">predicted_home_wins = np.random.randint(0, 2, 9).astype(bool)</code> than I did by spending months developing and testing a machine-learning model trained on over a century’s worth of AFL/VFL match data. My tips and predicted margins (along with the match results) were as follows:</p><figure name="450b" id="450b" class="graf graf--figure graf-after--p"><div class="aspectRatioPlaceholder is-locked" style="max-width: 700px; max-height: 217px;"><div class="aspectRatioPlaceholder-fill" style="padding-bottom: 31%;"></div><img class="graf-image" data-image-id="1*_yZu5AeQw8JNMl9FexD_XQ.png" data-width="1626" data-height="504" src="https://cdn-images-1.medium.com/max/800/1*_yZu5AeQw8JNMl9FexD_XQ.png"></div></figure><p name="0b1c" id="0b1c" class="graf graf--p graf-after--figure">I sure was riding high after the opening match: off by just one point, top of the office ladder, and well on my way to being a two-time Footy Tipping Office Champ. But then everything fell apart, slowly at first, a close match just barely going the other way, little more than a crack in the edifice, but soon whole chunks were tumbling down and by the time we got to Sunday, I couldn’t bear to watch the rest of the Freo/North match, turning it off midway through the second quarter, because that monument that I had build with months of sweat and computer-screen-induced eye strain had been properly demolished. It was a rough round indeed: I got three tips and was off the margin by an average of 40.11 points. On the bright side, it was a rough week for most, leaving me around the middle of the ladder, a downright respectable 10th out of 16.</p><h3 name="144c" id="144c" class="graf graf--h3 graf-after--p">Round 2 tips</h3><figure name="bb68" id="bb68" class="graf graf--figure graf-after--h3"><div class="aspectRatioPlaceholder is-locked" style="max-width: 700px; max-height: 362px;"><div class="aspectRatioPlaceholder-fill" style="padding-bottom: 51.7%;"></div><img class="graf-image" data-image-id="1*a2VE912pPOX9tVZU3Jxuiw.png" data-width="968" data-height="500" src="https://cdn-images-1.medium.com/max/800/1*a2VE912pPOX9tVZU3Jxuiw.png"></div></figure><p name="0fbb" id="0fbb" class="graf graf--p graf-after--figure">My model tends to follow the betting odds pretty closely, and I haven’t done any analysis of its inner workings yet, so I don’t have a good understanding of how it arrives at its predictions. One thing that I’ve noticed, is that my previous model had a strong home-team bias, almost always tipping the home team if the line odds were less than a goal or so. We’re only two rounds in, but Tipresias seems to have no qualms about tipping visiting teams in close matches, picking North Melbourne, Sydney, and West Coast to win in round one, and defying the betting odds to pick Brisbane to just edge out North at the Docklands. Once I get my tipping app settled and sufficiently automated, this will be something worth investigating.</p><p name="f413" id="f413" class="graf graf--p graf-after--p graf--trailing">I don’t have player data for any matches except Richmond v Collingwood yet, so these are subject to change, but I suspect that North v Brisbane is the only one that’s close enough to potentially change the predicted winner.</p></div></div></section>
+</section>
+<footer><p>By <a href="https://medium.com/@craigjfranklin" class="p-author h-card">Craig Franklin</a> on <a href="https://medium.com/p/1bad1d94a7ca"><time class="dt-published" datetime="2019-03-28T07:19:21.513Z">March 28, 2019</time></a>.</p><p><a href="https://medium.com/@craigjfranklin/footy-tipping-round-2-1bad1d94a7ca" class="p-canonical">Canonical link</a></p><p>Exported from <a href="https://medium.com">Medium</a> on October 24, 2019.</p></footer></article></body></html>
