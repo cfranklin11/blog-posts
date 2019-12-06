@@ -37,42 +37,42 @@ _Committee note: The “Audience” section helps the program committee get a se
 # **Outline**
 
 1. Introduction (2 mins)
-  * Explain Aussie Rules Football, footy tipping, and inspiration for the project.
-  * Set up structure of the talk: two seasons-worth of work, with what I did wrong in season one, and how I did it better (but not perfectly) for season two.
+    * Explain Aussie Rules Football, footy tipping, and inspiration for the project.
+    * Set up structure of the talk: two seasons-worth of work, with what I did wrong in season one, and how I did it better (but not perfectly) for season two.
 2. Understanding the Problem (2 mins)
-  * Season one: I just built a model to predict winners and losers.
-    * I didn't realise that one has to predict margins as well.
-  * Season two: I built a model to predict margins.
+    * Season one: I just built a model to predict winners and losers.
+        * I didn't realise that one has to predict margins as well.
+    * Season two: I built a model to predict margins.
 3. Collecting the Data (5 mins)
-  * Season one: I wrote my own web scraper.
-  * Season two: I imported data from a package that did the web scraping for me.
-    * It's good to share the work rather than go it alone.
-    * Use the right tool for the job: importing data from an R package can be less work than getting it yourself.
-  * Season one: I panicked and changed my data source, because the original source didn't update at the beginning of the week.
-  * Season two: I updated data in accordance with scheduled updates to websites.
-    * It's important to understand the source of data in addition to the data itself.
+    * Season one: I wrote my own web scraper.
+    * Season two: I imported data from a package that did the web scraping for me.
+        * It's good to share the work rather than go it alone.
+        * Use the right tool for the job: importing data from an R package can be less work than getting it yourself.
+    * Season one: I panicked and changed my data source, because the original source didn't update at the beginning of the week.
+    * Season two: I updated data in accordance with scheduled updates to websites.
+        * It's important to understand the source of data in addition to the data itself.
 4. Cleaning the Data (5 mins)
-  * Season one: I filled and/or dropped blank data and hoped for the best.
-  * Season two: I added a lot of assertions about the shape and content of data to raise errors early.
-  * Explicit assertions about your assumptions catch buggy data that wouldn't raise errors otherwise.
-  * With dynamic data sources, unexpected bugs pop up regularly; static unit tests won't catch them.
-6. Model Selection (2 mins)
-  * Season one: I started with multi-layer RNNs, because deep learning is the best, right?
-  * Season two: I tested a wide variety of model types, and NNs didn't have the best performance.
-  * Test your assumptions, because sometimes the results will surprise you.
-  * Interpretability and maintainability matter, because this isn't something you turn in for the best possible score then forget about.
-7. The Joy of Production (5 mins)
-  * Season one: I deployed to Heroku right before the season started, and it didn't work.
-    * Some C libraries weren't available in that environment.
-    * I deployed a Docker container to make sure all dependencies were in production.
-  * Season two: I deployed a container to Heroku right before the season started, and it didn't work.
-    * New player data set was too big and exceeded the free-tier memory limit.
-    * I paid for a larger server, until I could change the app's architecture.
-  * Know the differences between local and production environments, especially the limitations of the latter.
-8. Conclusion (2 mins)
-  * Season one: despite the mistakes, I won my office footy tipping competition by one whole point.
-  * Season two: despite the improvements, I lost my office footy tipping competition by five points.
-  * Doing things the right way improves your chances, but doesn't guarantee victory.
+    * Season one: I filled and/or dropped blank data and hoped for the best.
+    * Season two: I added a lot of assertions about the shape and content of data to raise errors early.
+    * Explicit assertions about your assumptions catch buggy data that wouldn't raise errors otherwise.
+    * With dynamic data sources, unexpected bugs pop up regularly; static unit tests won't catch them.
+5. Model Selection (2 mins)
+    * Season one: I started with multi-layer RNNs, because deep learning is the best, right?
+    * Season two: I tested a wide variety of model types, and NNs didn't have the best performance.
+    * Test your assumptions, because sometimes the results will surprise you.
+    * Interpretability and maintainability matter, because this isn't something you turn in for the best possible score then forget about.
+6. The Joy of Production (5 mins)
+    * Season one: I deployed to Heroku right before the season started, and it didn't work.
+        * Some C libraries weren't available in that environment.
+        * I deployed a Docker container to make sure all dependencies were in production.
+    * Season two: I deployed a container to Heroku right before the season started, and it didn't work.
+        * New player data set was too big and exceeded the free-tier memory limit.
+        * I paid for a larger server, until I could change the app's architecture.
+    * Know the differences between local and production environments, especially the limitations of the latter.
+7. Conclusion (2 mins)
+    * Season one: despite the mistakes, I won my office footy tipping competition by one whole point.
+    * Season two: despite the improvements, I lost my office footy tipping competition by five points.
+    * Doing things the right way improves your chances, but doesn't guarantee victory.
 
 ---
 
@@ -88,10 +88,10 @@ _If there’s too much to your topic to cover even in 45 minutes, you may wish t
 
 * Code for the first season model: [FootyTipper](https://github.com/cfranklin11/footy-tipper)
 * Code for the second season model:
-  * Main application: [Tipresias](https://github.com/tipresias/tipresias)
-  * Data processing and machine learning models: [Augury](https://github.com/tipresias/augury)
-  * Data source: [BirdSigns](https://github.com/tipresias/bird-signs)
+    * Main application: [Tipresias](https://github.com/tipresias/tipresias)
+    * Data processing and machine learning models: [Augury](https://github.com/tipresias/augury)
+    * Data source: [BirdSigns](https://github.com/tipresias/bird-signs)
 * Sample of related blog posts:
-  * [Post](https://medium.com/@craigjfranklin/toward-a-better-footy-tipping-model-mistakes-were-made-ee5a6738741f) introducing the idea and model.
-  * [Post](https://medium.com/@craigjfranklin/footy-tipping-with-machine-learning-models-assemble-5f884a7e8538) about model selection.
-  * [Post](https://dev.to/englishcraig/footy-tipping-with-machine-learning-2019-season-review-55mc) summarising 2019 performance and plans for the future.
+    * [Post](https://medium.com/@craigjfranklin/toward-a-better-footy-tipping-model-mistakes-were-made-ee5a6738741f) introducing the idea and model.
+    * [Post](https://medium.com/@craigjfranklin/footy-tipping-with-machine-learning-models-assemble-5f884a7e8538) about model selection.
+    * [Post](https://dev.to/englishcraig/footy-tipping-with-machine-learning-2019-season-review-55mc) summarising 2019 performance and plans for the future.
