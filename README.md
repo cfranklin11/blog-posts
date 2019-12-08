@@ -18,3 +18,4 @@
 - [2019-05-16-docker-compose-django-cra.md](https://dev.to/englishcraig/creating-an-app-with-docker-compose-django-and-create-react-app-31lf)
 - [2019-06-02-docker-django-react-heroku.md](https://dev.to/englishcraig/docker-django-react-building-assets-and-deploying-to-heroku-24jh)
 - [2019-08-11-pycon.md](https://dev.to/englishcraig/highlights-from-pycon-au-2019-3joc)
+- [2019-11-06-2019-tipping-season-review.md](https://dev.to/englishcraig/footy-tipping-with-machine-learning-2019-season-review-55mc)
