@@ -1,0 +1,141 @@
+# The Traps and Challenges of Machine Learning Outside the Kaggle Lines
+
+---
+
+## Kaggle is fine
+
+^To start, I'm not here to disparage Kaggle or similar data-science competition platforms. They're fine, but they are tightly controlled environments intended to create a space for learning and a level playing field: everyone plays by the same rules, with the same data, and may the best machine-learning enthusiast win. These competitions are the data-science equivalent of sport. You have the ones without prizes, with people competing for bragging rights, much like recreational leagues in which the weekday desk jockey gets a chance to hipcheck Jesse from Accounts Payable on Saturday. You also have the big leagues, the competitions with cash prizes for the winners, where material rewards server as a motivating factor alongside simple love of the game. If Kaggle competitions are like organised sport, then I'd say a personal machine-learning project is like a casual pick-up game: you don't never know who will show up from week to week, there are no coaches, no umpires, the goals and boundary lines are all in your imagination, and, most importantly, all rules are merely suggestions. Kaggle is fine, but if it's all you've known it can be a shock to have all the control and responsibility of your own project.
+
+^In working on my football prediction project, I encountered many novel challenges that I never encountered in machine-learning books or the few competitions that I entered on sites like Kaggle and DrivenData. This meant that I made lots of mistakes during the first season, both in building the model and the application around it. But like any good student, I took note of my errors and worked to avoid them when building my model for the second season, which means I made new mistakes, which is the principle sign of progress for us as coders, isn't it? So, let's lace up those boots, tape up that knee, and snap on our best headband, and get ready for machine learning where our only limit is in how much we want it. And grit.
+
+---
+
+## What is footy tipping?
+
+^Most of what I'm going to talk about today I learned from my project developing a machine-learning model to predict the results of Australian Football League (or AFL) matches, so I want to give a little context about the problem that I was trying to solve. Australian-rules football is a contact sport that uses an oblong ball, similar to rugby and American football. Depending on what part of Australia you're in, 'footy' can refer to this sport. Footy tipping is a popular activity where someone in the office sets up a betting pool, their coworkers have the opportunity to put money in a pot at the beginning of the season, and whoever can predict the most match winners correctly wins the money. I've lived in Australia for about six years, but I'm from the U.S. and knew very little about Australian-rules football when I arrived down under. I don't know what this says about my sense of humour, but I thought it would be funny to build a machine-learning model that was better at predicting AFL match results than the lifelong fans whom I worked with.
+
+^My third season of footy tipping has just begun earlier this month, and the first two seasons involved many novel challenges that I never encountered in machine-learning books or the few competitions that I entered on sites like Kaggle and DrivenData. This meant that I made lots of mistakes during that first season, both in building the model and the application around it. But like any good student, I took note of my errors and worked to avoid them when building my model for the second season, which means I made new mistakes, which is the principle sign of progress for us as coders, isn't it? So, like the explorers of old, let us leave the comfort of the Kaggle cloister, taking no heed of our mothers' tears nor our fathers' warnings, and head off into the machine-learning wilds.
+
+---
+
+## Clearly define your problem
+
+^By the time I started my project, I had lived in Australia for a few years, so I had participated in a few conversations about this strange, local custom known as "footy tipping". I knew that every week you just had to submit your predictions for the winner of each match, and the person who picks the most winners correctly at the end of the season wins. Easy. So, I built a machine-learning model with Scikit-Learn, fed it data from past AFL seasons, tuned it, then embedded it in a Flask app that e-mailed me predicted winners for every round. When it came time to submit my first tips of the season, I went to the tipping website, clicked the radio inputs next to the teams my model claimed would win, but there was a problem, a problem known as an unexpected input: in addition to picking winners, I had to enter a predicted margin of victory for the first match of the week. No one had told me about this! It turns out that the difference between your predicted margin and the actual margin of victory is used as a tie-breaker if multiple people get the same number of correct tips. My model was just a classifier picking winners and losers, and there wasn't time to create a whole new regressor to add margin predictions, so I spent the rest of that first season manually looking up the line odds on betting sites in order to be able to submit _something_.
+
+^When you're working on your own problem, as opposed to entering a competition, you don't have a team of people doing background research for you and presenting you with a clear, concise description of the problem your solving and what you need to do in order to solve it. What are the raw inputs, what are the required outputs? Do you want the highest accuracy, the lowest mean-absolute error, the lowest log-loss? Kaggle and other sites do all this work for you, because they want you to be able to focus on the challenge of developing the best possible models, according to their definition of 'best'. When you're on your own, you have to do your own research in defining the objective, then simplifying it into a problem that a machine-learning model can solve for. My objective was to win the office footy-tipping competition. I though the machine-learning problem was to maximise accuracy when predicting match winners. The _real_ problem, however, was to simultaneously maximise prediction accuracy, which was the primary objective, and minimise the error of the predicted margin, the secondary objective.
+
+^Having learned my lesson, when preparing for my second season of footy tipping, I focused on regressors rather than classifiers, which gave me the benefit of being able to achieve both objectives without needing to maintain two models throughout the AFL season. I could predict the margin of victory for each team with a regressor while implicitly also predicting the winner. If the predicted margin is positive, then that team is the predicted winner, if it's negative, then we expect that team to walk off the field heads hung low in shame.
+
+---
+
+## Optimise for maintainability first, best score second
+
+^In my second season of footy tipping, I got two objectives for one by predicting margins of victory with regressors, rather than training a classifier optimised for prediction accuracy and a regressor optimised for minimising the error from predicted margins. I did it this way, because each model that I build and maintain is more time and work spent on my project for diminishing benefit. In the context of a Kaggle competition, doing everything in your power to squeeze every drop of performance out of a model makes sense, because your score on the leaderboard is all that matters, and once the competition is over, you never have to look at that tangled mess of code again. For long-term projects, however, you will have to look at that code again, and you don't want it to be like looking in the mirror, hungover after a night of having way too much fun. What's the point of optimising your model's architecture and parameters to within an inch of its life if the complexity of your code makes the project no longer fun to work on? Is that extra fraction of a percent of accuracy worth it if you just give up in six months?
+
+^I'm not saying that we should all avoid complicated models or ensembles, and just stick to linear and logistic regression for all our machine-learning needs. But the cost/benefit calculus for a real-world personal project is very different from that of a data-science competition. In addition to the increased costs of complexity when you have to maintain code over an extended period of time, the benefits of increased complexity in the form of better performance metrics are less clear. In my case, I still have a leaderboard to compare my performance to others in the form of points from correct tips, even if my fellow competitors are sports fans rather than data-science enthusiasts. But you will often find that the difference between good-enough performance and fully-optimised performance isn't noticeable. So, I would recommend optimising gradually, being sure to occasionally refactor your models and application code to make future changes less painful. The first version of my footy tipping app, for example, was such a toxic dump of half-baked classes and rogue data pipelines that I abandoned it and created a new application from scratch. I took a bit better care of my code the second time around and I'm happy to say that heading into my third season of footy tipping, I was able to refactor and extend my existing model rather than creating a brand new one.
+
+---
+
+## Be familiar with your data, know the entire life stories of your data sources
+
+^Another important difference between Kaggle competitions and personal projects is the number of tasks that you're responsible for. As with defining the problem, Kaggle and others collect that data for you, clean it, serve it to you on their finest porcelain with a sprig of parsley: all you gotta do is build the best model possible before the competition ends. You have a lot of options when determining the scope of your personal project, but at a minimum you have to find your own data sources, import them to your development environment, and clean the data into a condition that your model can use. And heaven help you if you, like me, are working with dynamic data sources that change from week to week, sometimes in unpredictable ways.
+
+^My model uses betting odds for features, which provide a strong signal, because betting companies put a lot of resources into predicting which teams will win and by how much. In my first season, I started by scraping betting data from a site called Footywire. During the training phase, everything went great, I got my data, trained my model. I was ready to go. But less than a week before the first match of the season, the betting data tables were all blank. I panicked. I had no idea when Footywire updated their data. Maybe it wasn't until the day before a match, maybe it was after the match? And what was I going to do without my strongest features? I spent a few days writing a scraper for a betting site to get their odds, and managed to finish before the start of the season, by which time Footywire was finally displaying its aggregated betting odds as I had expected before losing my faith. I realised later, that I had expected betting data by the Monday before matches started on Thursday, but Footywire updates those tables every Tuesday. The next season, I was prepared. I didn't even bother getting predictions until Tuesday or Wednesday every week, and I often had to re-run my script to account for other sources' schedules, as team rosters are published on different days for different matches, and sometimes the guy who runs an AFL data site takes an extra couple days to update match results.
+
+---
+
+*Insert table of data update schedules* (add description/talking points later)
+
+^When importing from data sources that get updated on their own schedules, it's important to know those schedules well, so you can schedule your imports accordingly. If you try to import data that hasn't been updated yet, at best you'll get an empty response and can try again later; at worst you'll get stale data without realising it, then feed it into your model and get stale predictions in return. Just as you have to occasionally visually examine your data to check for subtle bugs, you should observe your data sources, paying particular attention to when and how they change.
+
+---
+
+## Get by with a little help from your friends
+
+^Collecting and cleaning your own data is a lot of work. You have to write web scraping scripts or figure out how to integrate with some poorly-documented, public API, then update your code with every change to the HTML or unversioned schema. How are you ever going to find the time to actually build and tune a model? When I started, I assumed that I was on my own. I'm so very clever and original, surely no one has ever thought of creating a machine-learning model for footy tipping. With that in mind, I found websites with the data I needed, and wrote code to scrape it, and with what little time I had left, I built my model. But I was wrong, so very wrong.
+
+---
+
+*Insert images of Twitter AVIs/Site logos of Aussie sports data people*
+
+^There was a whole community of statistically-minded Australian sports fans who have been doing footy tipping for years. There's a whole website dedicated to it called squiggle.com.au. A university in Melbourne runs multiple competitions every year for different types of statistical models. With so many smart people working on similar problems, I found that I didn't have to do everything myself. I could leverage other people's work to save time and focus more on the fun parts.
+
+^Just in time for my second attempt at a footy tipping model, I came across a package called `fitzRoy` that handles the scraping of various AFL data sites and returns the cleaned data through a simple API. I no longer had to worry about where or how to get past match data versus future match data versus player data, because each one came from its own function call. Now, the catch is that `fitzRoy` is an R package, and this might be a bit blasphemous at PyCon, but I've found R packages to be great sources of data that are often missing from the Python ecosystem. Integrating R into a Python app does require some extra effort, but the costs are largely in the initial implementation, with long-term maintenance being minimal. Web scrapers, on the other hand, break regularly with website updates, and it's always at the most inconvenient times. Just earlier this month, the head office of the AFL, in their infinite wisdom, decided to completely change their website, breaking my last remaining web scraper.
+
+---
+
+*Insert before/after image of AFL roster page*
+
+^Not only did they change the HTML and CSS, which would have merely forced me to update my selectors, but they rewrote their whole frontend in some javascript framework that asynchronously fetches data and renders DOM elements after the page loads, which forced me to completely rewrite my simple web scraper using Selenium to handle all the fancy javascript interactions that they just absolutely needed to display lists of players. It's these sorts of surprises that you want to be someone else's problem as much as possible.
+
+---
+
+## Make your assumptions about your data explicit with `assert`
+
+^Now that you have your raw data in a useable shape, you need to clean it up for your specific use case and build some features with it. One particularly sticky problem is what to do with missing data. Do you drop the offending rows, fill with zero and call it a day, or impute with a column's mean or median, or even use a fancy algorithmic imputer? Choosing the best solution for your data and model requires a combination of trial-and-error, using your best judgement, and maybe a prayer or two. At first, I generally dropped the exceptionally difficult cases that resulted in duplicate index values, which in my case were the generally-unique combination of team, year, and round number.
+
+---
+
+*Insert diagram/table of 1897 playoffs*
+
+^Cases like the round-robin playoffs in 1897 when all the teams played each other over the course of three weeks, but for some reason we're calling it one round.
+
+---
+
+*Insert image/scoreboard of 2010 Grand Final*
+
+^Or the time they replayed an entire Grand Final in 2010, because the teams tied the first time around. Imagine that: what if the Super Bowl, or the World Cup final, was tied at the end of regulation, and they looked at each other, shrugged, and decided that they had so much fun that they should all do it again next week? And now _I_ have to figure out what to do with all this duplicate data!
+
+---
+
+*Insert chart showing different amounts of data (i.e. number of seasons-worth of each set)*
+
+^I also had to account for a lot of missing data, because match data, like teams, scores, venues, start in 1897; player data, like kicks, catches, passes, start in 1965; and betting data, like win odds and point spreads, start in 2010. This means that when I join all these data sets together, there are, for some columns, literally centuries-worth of NaNs to drop or fill. Since basic imputation didn't seem reasonable (because what would it mean to give all teams the median win odds for 113 seasons of footy?), and it was way too much data to just drop it all, the best method seemed to be to fill everything with zeros and move on with my life. This created so many bugs.
+
+---
+
+*Insert picture of Garth here with "If you're gonna raise, raise into this"*
+
+^What I discovered is that data bugs are among the most insidious bugs imaginable, because they can easily lie hidden in your data frames, allowing your code to run smoothly. All your tests pass. Not a single exception is raised. Nothing seems out of place, until you take a look at a table or a chart, and see something awry, a value that seems a bit off, a bar that goes too high, or a line that goes too low. It's only then that you realise that your data has been wrong for weeks, maybe even months, and your model has been using it to make faulty predictions this whole time! This is why I started liberally sprinkling `assert`s and `raise`s throughout my code base, because if you leave your assumptions about your data implicit, hidden, they will ruin your day when it's least convenient. So, raise errors early, and raise them often.
+
+---
+
+^Below are some examples of my own assertions that have saved me with embarrassing frequency:
+
+* After filtering rows by date, assert that the data frame isn't empty.
+    * src/augury/predictions.py:85 (after filtering for test data)
+    * backend/server/schema.py:363 (sometimes got empty query set for model names, no future matches, etc.)
+* When calculating cumulative sums or means, assert that the data frame is sorted by date. Same goes for data passed to time-series models like ARIMA or Elo.
+    * src/augury/sklearn/models.py:232 (Elo estimator was getting horrible accuracy, then I learned why)
+* Periodically assert that the index has no duplicates.
+    * src/augury/nodes/base.py:100 (can easily go unnoticed until a concat or join much further down the pipeline)
+* Assert that there are no dodgy zeros.
+    * src/augury/nodes/base.py:114 (basically used after every join, because bad joins plus bad fillnas equals a giant mess of a sparse matrix)
+
+^These kinds of assertions are really important, because data bugs are almost impossible to test for when you don't control the data source. There's no guarantee that they would appear at the moment you run an end-to-end test, and you can't mock what you don't anticipate. But these bugs can still easily make their way into your model the next time you run a training or prediction script. You're better off just breaking your own code than letting your model do the garbage-in/garbage-out two-step.
+
+---
+
+## The Joy of Production
+
+*Insert modified Joy of Cooking cover here*
+
+^So, you've lined up with your teammates, sized up the data in front of you, tackled it cleanly but with authority, such that the data will definitely feel it in the morning; you've driven that data into the simplest model that gets the job done; now you're ready to wrap everything up in an application and deploy it the world wide web. I'm not going to go into technical detail about how to deploy or which platforms to use, but I can tell you about a few of the problems that pop up once you change the environment in which your code runs.
+
+^I had no idea how many dependencies my code had until I tried to run it outside the safety and comfort of my own laptop. For my first season of automated tipping, I was rushing to get everything ready before the whistle blew on the first match, and with less than a week to go, I deployed my app to Heroku, because it's simple and I had used it before with other projects. Unfortunately, I was using the Vowpal Wabbit package as part of my model, which requires some low-level C libraries like Boost, which, it turns out, Heroku does not include in its Python runtime environment. The downside of this was that I had to run my model locally for the first few weeks while I learned how to use Docker to containerize and deploy my app. The upside was that I learned how to use Docker, which is ridiculously useful for making the tangled web of data science dependencies consistent across machines, local or in the cloud. With everything wrapped up in a Docker container, I could deploy anywhere without worrying about all the necessary packages and libraries being available, because I could install them myself on a Docker image.
+
+^Since the theme of this talk is lessons learned and iterative improvements made, you'd think that I would have deployed my second app well before the season started, giving myself plenty of time to make adjustments if anything didn't go according to plan, but you'd be wrong. Again, rushing to get my code ready, I deployed my dockerized app to Heroku right before the start of the AFL season, something that had worked flawlessly for the last 12 months, but it blew up as soon as I ran my prediction script. The thing that had changed, was my model now used player data as an input, and this data set is significantly larger than any other I had used, causing my free-tier server to run out of memory and crash. As a result, I had to run my model locally for the first few weeks while I changed the app's architecture and migrated to DigitalOcean, which was a little cheaper.
+
+^Just as we should really understand the sources of our data, we should also understand the capabilities and limitations of the machines on which our code run. I've picked up some basic DevOps skills over the course of this project, but I'm far from being competent at managing cloud architecture. Even so, knowing how much memory and processing power your data sets and models require, and looking up the specs of potential server instances can go a long way toward avoiding mysterious crashes that are only tangentially related to your code.
+
+---
+
+## Predicting the bounce of an oblong ball
+
+^As I mentioned earlier, despite all the differences between a Kaggle competition and a real-world project, there's still the potential for a final score to measure how well you performed your task. This was certainly true in my case, especially since my initial inspiration was to show those Aussies what a little old-fashioned American ingenuity could accomplish by beating them at their own game. So, how did I do? Well, in that first season, with all the mistakes and setbacks and tentative feeling about for any lightswitch in the darkness of my own ignorance, I managed to recover from a rough start in which I dropped as low as nine points behind the leader to seize victory literally in the final match of the season. I had done it. I had won my office footy-tipping competition! Clearly, I was well on my way to dynasty levels of repeat championships, especially once I had applied the lessons learned from my first attempt and returned with a flawless model that would embarrass the competition with its unbeatable accuracy.
+
+^During my second season of footy tipping, however, the start was rough, the middle was even rougher, and there was no comeback to be had. I ended up placing fourth, a full five points behind the winner. Unfortunately, refactored code, cleaner data, and a more-methodically developed model don't automatically equate superior performance. Since machine-learning models are probabilistic, there's always a little luck when you apply them to the chaotic world in which we live. In a Kaggle competition, you can optimise toward a static, hidden test set, but every footy season is unique, with different players on different teams producing combinations of plays that have never happened before and will never happen again. A few more dropped passes on one team, a few more calls in your favour, a few more balls bouncing in rather than out, and you look like a genus; a few in the opposite direction make you look like a fool. And in a season that's a bit more chaotic than usual, with plenty of upsets to confound the probabilistically minded, a random tipper's instinct can beat the odds as well as the machines.
+
+---
+
+## Thank you
