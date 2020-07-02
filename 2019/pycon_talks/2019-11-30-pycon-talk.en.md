@@ -1,6 +1,6 @@
 # **Title**
 
-The Traps and Challenges of Machine Learning Outside the Kaggle Cloister
+Machine Learning Outside the Kaggle Lines
 
 ---
 
