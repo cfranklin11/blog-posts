@@ -3,9 +3,9 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 
 ![](images/outside-the-lines.jpg)
 
-# **Machine Learning<br>Outside the Kaggle Lines**
+# <br><br>**Machine Learning<br>Outside the Kaggle Lines**
 
-## Craig Franklin
+## Craig Franklin<br><br><br><br><br><br>![inline 75%](images/pyconjp2020.png)
 
 [.footer:]
 
@@ -14,8 +14,6 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 # About me
 
 :wine_glass: Backend developer at Vinomofo
-
-:snake: Weekend pythonista
 
 :rugby_football: Recent convert to Aussie Rules Football fandom
 
@@ -34,20 +32,10 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 # :thumbsup:
 
 ^
+- Competitions & learning
 - Good for learning
 - Level playing field
-- Same rules, data, objective, like sport
-
----
-
-![inline fill](images/jeffrey-f-lin-Uhlg5RoAtoI-unsplash.jpg)![inline fill](images/nick-jio-bYvo2ol_img-unsplash.jpg)![inline fill](images/ruben-leija-jY_knL-TVvA-unsplash.jpg)
-
-^
-- Without prizes like rec league
-- Cash prizes like professional league
-- Personal project like pick-up game
-
-[.footer: _Photos by Nick Jio, Jeffrey F Lin, and Ruben Leija on Unsplash_<br>![inline](images/twitter-logo.png) @englishcraig]
+- Same rules, data, objective
 
 ---
 
@@ -63,7 +51,6 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 
 ^
 - Australian-rules football: contact sport, oblong ball
-- Parts of Australia, this is 'footy'
 - Footy tipping: office betting pool
 - Most correct picks wins
 - Lots of novel challenges & mistakes, but learned from them
@@ -90,31 +77,7 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 ^
 - Margin of victory for first match is tie breaker
 - Had classifier, so manually entered margins
-
----
-
-## The Kaggle team are here to help
-
-![inline](images/science-in-hd-oz1NzV2xWXU-unsplash.jpg)
-
-^
-- Kaggle do all the hard work: data, cleaning, objective
-- Focus on model building/tuning
-
-[.footer: _Photo by Science in HD on Unsplash_<br>![inline](images/twitter-logo.png) @englishcraig]
-
----
-
-## Wait, where'd they go?
-
-![inline](images/jeremy-bishop-6fbX_qHQCP8-unsplash.jpg)
-
-^
-- Define an objective
-- Simplify into a machine-learning problem
-- Had two objectives: pick winners and their margins of victory
-
-[.footer: _Photo by Jeremy Bishop on Unsplash_<br>![inline](images/twitter-logo.png) @englishcraig]
+- Next season: changed to regressor for margins
 
 ---
 
@@ -127,17 +90,9 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 - Collecting data to solve your ML problem is hard
 - Dynamic data sources are particularly difficult
 - Start of first season, betting odds data were blank
+- I panicked & scraped a betting site
 
 [.footer: *Photo by CoWomen on Unsplash*]
-
----
-
-![inline](images/empty-betting-odds.png)
-
-^
-- I didn't know when Footywire updated their data
-- I panicked & scraped a betting site
-- Betting data updated before first match after all
 
 ---
 
@@ -151,7 +106,6 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 | Thursday  | Team rosters                  | afl.com.au    | For all later matches                       |
 
 ^
-- Different schedules for different sources, not consistent
 - Rosters & betting odds change up until the start of each match
 - Avoid predictions with blank or stale data
 - Observe data sources as you would the data itself
@@ -185,29 +139,11 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 
 ---
 
-## Markup good, JavaScript bad
-
-![inline fill](images/old-afl-rosters.png)![inline fill](images/new-afl-rosters.png)
-
-^
-- Rewrite scraper in slow, memory-hungry Selenium
-
----
-
 # Make your assumptions explicit
 
 ^
 - What values can be missing? What values are unique?
 - Index: team, season, round number
-
----
-
-## That _one_ time we decided to play a round-robin finals
-
-![inline 75%](images/1897-finals.png)
-
-^
-- 1897: All teams, three weeks, one round
 
 ---
 
@@ -222,27 +158,9 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 
 ---
 
-| Data set                  | First season | # blank seasons |
-| ------------------------- | ------------ | --------------- |
-| Match results             | 1897         | 0               |
-| Player scoring stats      | 1897         | 0               |
-| Basic player stats\*      | 1965         | 68              |
-| Advanced player stats\*\* | 1999         | 102             |
-| Betting odds              | 2010         | 113             |
-
-\*_For basic in-game events like kicks, tackles, etc._
-\*\*_For less-common in-game events or ones that require player location._
-
-^
-- Different stats start in different years
-- Lots of blank values
-- Imputing didn't make sense, so decided to fill with 0s
-
----
-
 # Data bugs could be hiding anywhere
 
-![fit](images/katie-moum-5FHv5nS7yGg-unsplash.jpg)
+![inline](images/katie-moum-5FHv5nS7yGg-unsplash.jpg)
 
 ^
 - Data bugs are often silent
@@ -250,24 +168,6 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 - Raising errors codifies assumptions about valid data
 
 [.footer: _Photo by Katie Moum on Unsplash_<br>![inline](images/twitter-logo.png) @englishcraig]
-
----
-
-## After filtering, make sure you still have data
-
-```python
-test_year = what_i_think_my_validation_season_is
-test_data = data[data["year"] == test_year]
-
-assert test_data.any().any(), (
-    "test_data doesn't have any rows, likely due to no data ",
-    f"being available for {test_year}.",
-)
-```
-
-^
-- Can be wrong data set, wrong filter value/range
-- Usually raise error eventually, but further from the actual bug
 
 ---
 
@@ -288,20 +188,24 @@ data_frame.groupby(["team", "year"].cumsum("match_wins"))
 
 ---
 
-## Periodically assert that the index has no duplicates
+## Joining disparate data sets is risky
 
-```python
-duplicate_indices = data_frame.index.duplicated()
+| Data set                  | First season | # blank seasons |
+| ------------------------- | ------------ | --------------- |
+| Match results             | 1897         | 0               |
+| Player scoring stats      | 1897         | 0               |
+| Basic player stats\*      | 1965         | 68              |
+| Advanced player stats\*\* | 1999         | 102             |
+| Betting odds              | 2010         | 113             |
 
-assert not duplicate_indices.any().any(), (
-    "Cleaning data resulted in rows with duplicate indices:\n"
-    f"{data_frame[duplicate_indices]}"
-)
-```
+\*_For basic in-game events like kicks, tackles, etc._
+\*\*_For less-common in-game events or ones that require player location._
 
 ^
-- Pops up around splitting/joining data
-- Usually raises eventually as well
+- Different stats start in different years
+- Lots of blank values
+- Imputing didn't make sense, so decided to fill with 0s
+- Caused lots of bugs
 
 ---
 
@@ -336,6 +240,8 @@ assert not zeros_data_frame.any().any(), (
 [.footer: *Photo by Cesar Carlevarino Aragon on Unsplash*]
 
 ---
+
+## Calculate the cost/benefit of complexity
 
 ![inline fill](images/stellrweb-djb1whucfBY-unsplash.jpg)
 
@@ -400,7 +306,7 @@ assert not zeros_data_frame.any().any(), (
 | Top Coworker   | 139            |
 | Oddsmakers     | 140            |
 
-**\* Regular season only**
+\* _Regular season only_
 
 ^
 - Rough start, but came back to win in final match
@@ -415,7 +321,7 @@ assert not zeros_data_frame.any().any(), (
 | Top Coworker   | 138            |
 | Oddsmakers     | 135            |
 
-**\* Regular season only**
+\* _Regular season only_
 
 ^
 - Added data, improved model
@@ -427,6 +333,8 @@ assert not zeros_data_frame.any().any(), (
 ---
 
 # Thank you
+
+All the tips: ![inline](images/tipresias-logo.png) tipresias.net
 
 All the code: ![inline](images/Octocat.png) tipresias
 
