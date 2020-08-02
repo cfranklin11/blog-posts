@@ -7,11 +7,13 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 
 ## Craig Franklin
 
+[.footer:]
+
 ---
 
 # About me
 
-:department_store: Backend developer at Marketplacer
+:wine_glass: Backend developer at Vinomofo
 
 :snake: Weekend pythonista
 
@@ -130,7 +132,7 @@ footer: ![inline](images/twitter-logo.png) @englishcraig
 
 ---
 
-_Insert screenshot of data table with blank betting odds_
+![inline](images/empty-betting-odds.png)
 
 ^
 - I didn't know when Footywire updated their data
@@ -382,29 +384,45 @@ assert not zeros_data_frame.any().any(), (
 
 ---
 
-<!-- ## Do you always have to wait until the last minute?
-
-![inline](images/gift-habeshaw-vLz1Gy-FLkQ-unsplash.jpg)
-
-^Just as we should really understand the sources of our data, we should also understand the capabilities and limitations of the machines on which our code run. I've picked up some basic DevOps skills over the course of this project, but I'm far from being competent at managing cloud architecture. Even so, knowing how much memory and processing power your data sets and models require, and looking up the specs of potential server instances can go a long way toward avoiding mysterious crashes that are only tangentially related to your code.
-
-[.footer: _Photo by Gift Habeshaw on Unsplash_<br>![inline](images/twitter-logo.png) @englishcraig]
-
---- -->
-
 # Predicting the bounce<br>of an oblong ball
 
 ![](images/Laura_Bailey_and_Kylie_Duggan_competing_for_the_ball.jpg)
 
+[.footer: *Flickerd / CC BY-SA (https://creativecommons.org/licenses/by-sa/4.0)*]
+
+---
+
+## 2018 Season Results
+
+| Tipper         | Correct Tips\* |
+| -------------- | -------------- |
+| Tipresias (me) | 140            |
+| Top Coworker   | 139            |
+| Oddsmakers     | 140            |
+
+**\* Regular season only**
+
 ^
 - Rough start, but came back to win in final match
+
+---
+
+## 2019 Season Results
+
+| Tipper         | Correct Tips\* |
+| -------------- | -------------- |
+| Tipresias (me) | 133            |
+| Top Coworker   | 138            |
+| Oddsmakers     | 135            |
+
+**\* Regular season only**
+
+^
 - Added data, improved model
 - Rough start, rough middle, rough finish
 - Success isn't guaranteed
 - Kaggle has static test set, sport is chaotic and each season is unique
 - Random tipper's instinct can beat the odds as well as the machines
-
-[.footer: *Flickerd / CC BY-SA (https://creativecommons.org/licenses/by-sa/4.0)*]
 
 ---
 
