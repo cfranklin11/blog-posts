@@ -37,41 +37,33 @@ _Committee note: The “Audience” section helps the program committee get a se
 # **Outline**
 
 1. Introduction (2 mins)
+    * Introduce the overview of how Kaggle competitions are different from building an independent project.
     * Explain Aussie Rules Football, footy tipping, and inspiration for the project.
-    * Set up structure of the talk: two seasons-worth of work, with what I did wrong in season one, and how I did it better (but not perfectly) for season two.
-2. Understanding the Problem (2 mins)
-    * Season one: I just built a model to predict winners and losers.
-        * I didn't realise that one has to predict margins as well.
-    * Season two: I built a model to predict margins.
-3. Collecting the Data (5 mins)
-    * Season one: I wrote my own web scraper.
-    * Season two: I imported data from a package that did the web scraping for me.
-        * It's good to share the work rather than go it alone.
-        * Use the right tool for the job: importing data from an R package can be less work than getting it yourself.
-    * Season one: I panicked and changed my data source, because the original source didn't update at the beginning of the week.
-    * Season two: I updated data in accordance with scheduled updates to websites.
-        * It's important to understand the source of data in addition to the data itself.
-4. Cleaning the Data (5 mins)
-    * Season one: I filled and/or dropped blank data and hoped for the best.
-    * Season two: I added a lot of assertions about the shape and content of data to raise errors early.
-    * Explicit assertions about your assumptions catch buggy data that wouldn't raise errors otherwise.
+2. Defining the Problem (2 mins)
+    * Understand all parts of the real-world problem you're trying to solve.
+    * Translate business objectives into machine-learning objectives.
+3. Understanding data sources (5 mins)
+    * Unlike with Kaggle, you have to find and clean you're own data.
+    * Data sources change over time and update on their own schedules.
+    * Understanding sources can be as important as understanding the data itself.
+4. Use all available resources (5 mins)
+    * Read technical and domain-specific resources to better understand your objective and project.
+    * Importing data from a package is less work than maintaining web scrapers.
+    * It's good to share the work rather than go it alone.
+4. Make data assumptions explicit (5 mins)
+    * Data bugs are difficult to catch.
+    * Add a lot of assertions about the shape and content of data to raise errors early.
     * With dynamic data sources, unexpected bugs pop up regularly; static unit tests won't catch them.
-5. Model Selection (2 mins)
-    * Season one: I started with multi-layer RNNs, because deep learning is the best, right?
-    * Season two: I tested a wide variety of model types, and NNs didn't have the best performance.
-    * Test your assumptions, because sometimes the results will surprise you.
-    * Interpretability and maintainability matter, because this isn't something you turn in for the best possible score then forget about.
+5. Maintainability matters (2 mins)
+    * Kaggle code can be abandoned after a competition.
+    * Maintainability matters for side projects, because this isn't something you turn in for the best possible score then forget about.
 6. The Joy of Production (5 mins)
-    * Season one: I deployed to Heroku right before the season started, and it didn't work.
-        * Some C libraries weren't available in that environment.
-        * I deployed a Docker container to make sure all dependencies were in production.
-    * Season two: I deployed a container to Heroku right before the season started, and it didn't work.
-        * New player data set was too big and exceeded the free-tier memory limit.
-        * I paid for a larger server, until I could change the app's architecture.
-    * Know the differences between local and production environments, especially the limitations of the latter.
+    * You don't need to deploy Kaggle models to the cloud.
+    * Know your dependencies and what's available on your server.
+    * Know your memory and CPU needs and what specs your server has.
 7. Conclusion (2 mins)
-    * Season one: despite the mistakes, I won my office footy tipping competition by one whole point.
-    * Season two: despite the improvements, I lost my office footy tipping competition by five points.
+    * First year: despite the mistakes, I won my office footy tipping competition by one whole point.
+    * Second year: despite the improvements, I lost my office footy tipping competition by five points.
     * Doing things the right way improves your chances, but doesn't guarantee victory.
 
 ---
