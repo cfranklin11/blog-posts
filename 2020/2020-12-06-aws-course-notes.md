@@ -116,7 +116,7 @@
   - Optimised for a given task/use case
 - Custom AMIs are region specific
 
-## II. AWS Fundamentals: ELB + ASG
+## II. AWS Fundamentals: ELB & ASG
 
 ### A. Scaling & Availability
 
@@ -129,7 +129,7 @@
 ### B. Load balancing
 
 - Load balancers forward traffic to one or more server instances
-- Spread load across servers and give single point of access (DNS) to the application
+- Spread load across servers and give single point of access (DNS or IP) to the application
 - Handle server failures by redirecting traffic to healthy servers
 - Perform regular health checks on servers
 - Provides SSL termination (HTTPS)
@@ -153,6 +153,7 @@
 
 - Managed load balancer from AWS
 - Costs more, but takes care a lot of the stup & maintenance work & integrates with other AWS services
+- Exposes static DNS (URL) to public traffic
 - Classic load balancer (v1, old generation, 2009)
   - Supports: HTTP, HTTPS, TCP
 - Application load balancer (v2, new generation, 2016)
@@ -212,8 +213,8 @@
   - Can add optional list of certificates to support multiple domains
   - Clients can use Server Name Identification (SNI) to specify target hostname
 - Optionally create security groups to support older versions of SSL/TLS
-- SNI:
-  - Solves problem of using multiple certificates on single web server to serve multiple webistes (load balancer)
+- Server Name Indication (SNI):
+  - Solves problem of using multiple certificates on single web server to serve multiple websites (load balancer)
   - Client indicates hostname of target server in SSL handshake
   - Server returns correct certificate for that server or default one
   - Only works on ALB, NLD, or CloudFront
@@ -238,3 +239,71 @@
   - Updating ASG requires new configuration/template
 - IAM role assigned to an ASG also gets assigned to EC2 instances in that ASG
 - ASGs are free; you just pay for resources being used (EC2, EBS, etc.)
+
+#### 1. Scaling policies
+
+- Target tracking scaling
+  - Target resource usage (e.g. 40% CPU across all servers)
+- Simple/Step scaling
+  - Trigger alarm at defined usage (e.g. 75% CPU), then take defined action (add 2 servers to group)
+  - Can trigger scale up or down events
+- Scheduled actions
+  - Scale up or down a defined amount at scheduled days/times
+- There are cooldown periods to allow scale up/down actions to take effect before re-assessing if more action is needed
+- Can override default cooldown with custom, group-specific cooldowns
+- Common to give scale-down actions shorter cooldowns, because the response is quicker (i.e. shutting down servers is quicker than spinning them up)
+
+## III. EC2 Storage: EBS & EFS
+
+### A. Elastic Block Store (EBS)
+
+- Network drive attached to an EC2 server while it runs (common for DBs)
+- Can be detached from an EC2 and attached to another one easily
+- Locked to an AZ
+- Define size (GB, I/O Ops per Secons or IOPS) on creation
+  - Billed by provisioned capacity, not capacity used
+  - You can increase the size later
+- EBS types:
+  - GP2 (SSD): general purpose, balances price & performance
+  - IO1 (SSD): high performance SSD (use: critical DBs)
+  - ST1 (HDD): low-cost HDD for frequently accessed, high throughput (use: big data)
+  - SC1 (HDD): lowest-cost HDD for less-frequently accessed data
+- ONly GP2 or IO1 can be boot volumes
+
+#### 1. GP2 (SSD)
+
+- Like t2 instances, can temporarily burst IOPS
+- Has max IOPS per GB of storage (3 IOPS per GB)
+- Minimum 100 IOPS, burst to 3,000 IOPS, maximum 16,000 IOPS
+
+#### 2. IO1 (SSD)
+
+- Higher IOPS limit than GP2, but more expensive
+- Mostly for large, business critical DBs
+- Set IOPS independent of memory, but like GP2, bases max IOPS on storage size
+- Minimum 100 IOPS, maximum 64,000 IOPS (Nitro) or 32,000 IOPS (other)
+
+#### 3. ST1 (HDD)
+
+- Mostly for streaming workloads (big data, log processing, kafka)
+- Lots of throughput (MiBs/second)
+- Max 500 MiB/second
+
+#### 4. SC1 (HDD)
+
+- high throughput, but less-frequently accessed than ST1 workload
+- Max 250 MiB/second
+
+#### 5. Instance store
+
+- Instance store is ephemeral storage
+- Physically attached to instance harddrive
+- Mostly for caching, buffers, temporary content
+- Better I/O performance, very high IOPS (no network)
+- data survives reboots, but is lost on termination
+- Can't resize after creation
+- Backups are manual
+
+  ### B. Elastic File System (EFS)
+
+  -
