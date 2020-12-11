@@ -258,8 +258,10 @@
 ### A. Elastic Block Store (EBS)
 
 - Network drive attached to an EC2 server while it runs (common for DBs)
-- Can be detached from an EC2 and attached to another one easily
+- Can be detached from an EC2 and attached to another one easily (but only one at a time)
 - Locked to an AZ
+  - Can migrate to another AZ by taking a snapshot, then restoring the snapshot in another AZ
+- EBS volumes get terminated when the attached EC2 is terminated by default (but can be changed via settings)
 - Define size (GB, I/O Ops per Secons or IOPS) on creation
   - Billed by provisioned capacity, not capacity used
   - You can increase the size later
@@ -304,6 +306,35 @@
 - Can't resize after creation
 - Backups are manual
 
-  ### B. Elastic File System (EFS)
+### B. Elastic File System (EFS)
 
-  -
+- Managed network file system (NFS) that can be mounted on EC2 instances
+- Usable by EC2s across AZs
+- Highly available & scalable, but expensive
+- Pay for what you use
+- Can connect to multiple EC2s across AZs at the same time
+- Use cases: content management, web serving, data sharing
+- Uses NFSv4.1 protocol
+- Control access with security groups
+- Works on Linux-based servers only
+- Encryption at rest using KMS
+- POSIX filesystem (which is Linux only)
+- Can scale up a lot (up to thousands of NFS clients and 10+ GB of throughput)
+- Performance mode (set at creation time):
+  - General purpose: latency-sensitive use cases (web serving, CMS)
+  - Max I/O: higher latency, higher throughput, highly parallel (big data, media processing)
+- Storage tiers
+  - Standard: frequently-accessed files
+  - Infrequently-accessed (EFS-IA): cost to retrieve files, but lower cost to store
+  - Lifecycle management setting will automatically move files from Standard to EFS-IA after X number of days
+
+## 6. AWS Fundamentals: RDS & Aurora & ElastiCache
+
+### A. RDS
+
+- 
+
+### B. Aurora
+
+### C. ElastiCache
+
