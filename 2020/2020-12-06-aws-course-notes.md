@@ -330,11 +330,72 @@
 
 ## 6. AWS Fundamentals: RDS & Aurora & ElastiCache
 
-### A. RDS
+### A. Relational Database Service (RDS)
 
-- 
+- Availabe DBs:
+  - MySQL
+  - Postgres
+  - MariaDB
+  - Oracle
+  - Microsoft SQL Server
+  - Aurora (AWS's DB)
+- Managed services:
+  - Automated provisioning, OS patching
+  - Backups & restores (Point in Time Restore)
+  - Monitoring dashboards
+  - Read replicas
+  - Multi-AZ setup for disaster recovery (DR)
+  - Maintenance windows for upgrades
+  - Scalibility (horizontal and/or vertical)
+  - Storage backed by EBS (GP2 or IO1)
+- No SSH connection (unlike a DB in an EC2 instance)
+- Automated backups:
+  - Full back up every day
+  - Transaction logs backed up every 5 minutes
+  - Backups last 7 days by default (up to 35 days)
+- DB snapshots:
+  - Manually triggered backup
+  - Retained as long as you want
+
+#### 1. Read replicas vs Multi-AZ
+
+- Read Replicas
+  - Up to 5 replicas
+  - Can be same AZ, cross AZ, or cross region
+  - Async replication, so reads are _eventuall_ consistent
+  - Requires application to use connection that has read replicas enabled
+  - Use case: analytics/reporting uses replica to not slow down main app
+  - Network costs
+    - Cross-AZ traffic/data costs extra, so cross-AZ replicas can be expensive
+- Multi-AZ
+  - Synchronous replication to standby instance in different AZ
+  - Automatic failover to standby (better availibility)
+  - No application change needed
+  - Not used for scaling, but can use a read replica as a multi-AZ standby as well
+
+#### 2. Security & Encryption
+
+- At-rest encryption
+  - can apply to master & read replicas with AWS Key Management Service (KMS) AES 256 encryption
+  - Must be defined at launch time
+  - If master isn't encrypted, replicas _cannot_ be encrypted
+  - Transparent Data Encryption (TDE) available for Oracle & SQL Server
+- In-flight encryption
+  - Uses SSL certificates to encrypt data
+  - To enable for Postgres, need to use a Parameter Group in the AWS console (rds.force_ssl=1)
+  - For MySQL (within the DB), run `GRANT USAGE ON *.* TO 'mysqluser'@'%' REQUIRE SSL;`
+- Snapshots default to whether the main DB is encrypted or not
+- Can copy an unencrypted snapshot and make the copy encrypted
+- Can use this to migrate from unencrypted DB to encrypted by restoring the DB from the encrypted snapshot
+- Deploy to private subnet, not public (i.e. not exposed to public internet)
+- Uses security groups to manage access
+- Regular username/password to log into the DB like normal
+  - Can use IAM for RDS MySQL or Postgres
+  - Get access token from IAM API (15 min lifetime)
 
 ### B. Aurora
+
+-
 
 ### C. ElastiCache
 
