@@ -395,7 +395,42 @@
 
 ### B. Aurora
 
--
+- Works with either MySQL or Postgres DB drivers (configure at creation time)
+- "AWS cloud optimized": 5x performance over MySQL, 3X over Postgres
+- Storage automatically grows 10GB at a time, up to 64TB
+- Can have 15 replicas (as opposed to 5), and replication is faster
+- Failover is instantaneous + good HA
+- Costs ~20% more than RDS
+- 6 copies of your data across 3 AZs
+  - 4 copies needed for writes
+  - 3 copies needed for reads
+  - Self-healing with peer-to-peer replication (fixes bad/corrupt data)
+  - Storage is striped across 100s of volumes for reliability, shared across DBs & AZs
+- 1 DB takes writes (master)
+- Automatic failover in 30 secs if master goes down
+- Master + up to 15 read replicas serve reads
+- A Writer Endpoint receives write calls and directs to master (redirecting to a new master in case of failover)
+- A Reader Endpoint receives read calls and directs to read replicas with load balancing
+  - Load balancing happens at connection level
+- Similar security features as RDS
+- Aurora Serverless: automated DB instantiation & auto-scaling based on usage
+  - Good for infrequent jobs
+  - No capacity planning needed
+  - Cost per second of use
+  - Proxy Fleet manages scaling/instantiation
+- Global Aurora
+  - Cross-region read replicas
+  - Aurora Global DB (recommended)
+    - 1 primary region for read & writes
+    - Up to 5 secondary regions for read only
+    - Up to 16 read replicas per secondary region
+    - Can promote a secondary region to primary, changes in < 1 minute
 
 ### C. ElastiCache
+
+- Managed Redis/Memcached
+- Write scaling w/ sharding; read scaling w/ replicas
+- Multi-AZ with failover
+- A lot of the same benefits of RDS
+- Cache DB calls or store user sessions (especially good for multi-instance or application architectures)
 
