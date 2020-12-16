@@ -433,4 +433,45 @@
 - Multi-AZ with failover
 - A lot of the same benefits of RDS
 - Cache DB calls or store user sessions (especially good for multi-instance or application architectures)
+- Redis
+  - Multi-AZ with auto-failover
+  - Scaling with read replicas
+  - Data durability using AOF assistance (i.e. if server restarts)
+  - Backups & restores
+  - Cluster mode for greater scalibility/availability
+- Memcached
+  - Multi-node for data partioning (sharding)
+  - Non-persistent
+  - No backup, no restore
+  - Multi-threaded architecture
+- Caching considerations
+  - Is it safe to cache? (how quickly does data change?)
+  - Is caching effective?
+    - slow to change, few keys to check = effective
+    - change quickly and/or lots of keys to check = ineffective
+  - Good data structure for caching? (i.e. key/value pair structure)
+- Lazy Loading / Cache-Aside / Lazy Populations
+  - Request hits cache or proceeds to DB and writes to cache
+  - Pros:
+    - Only requested data is cached
+    - Node failures aren't fatal, just have to warm the cache (i.e. re-request & re-write)
+  - Cons:
+    - Cache miss is slow: 3 requests to complete (read cache, read DB, write cache)
+    - Stale data: changes in DB don't update cached data
+- Write Through
+  - Update cache when data in DB changes
+  - Pros:
+    - Cache data is never stale
+    - Write penalty = 2 calls (write DB _and_ write cache), which fewer than 3 and less-noticeable from UX perspective
+  - Cons:
+    - Missing data from cache until update (mitigation is to use Lazy Loading as well)
+    - A lot of cache data will never be read
+- Cache Evictions & Time-to-live (TTL)
+  - 3 forms of cache eviction:
+    - Delete data manually
+    - Memory is full and data hasn't been used recently (LRU)
+    - Time-to-live limit (i.e. configuration such that data only lasts X amount of time)
 
+## 7. Route 53
+
+-
