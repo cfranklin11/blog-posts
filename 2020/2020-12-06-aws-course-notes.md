@@ -474,4 +474,37 @@
 
 ## 7. Route 53
 
--
+- Managed Domain Name System (DNS)
+- Common AWS DNS records:
+  - A: hostname to IPv4
+  - AAAA: hostname to IPv6
+  - CNAME: hostname to hostname
+  - Alias: hostname to AWS resource
+- Route 53 can use:
+  - public domain names you own
+  - private domain names resolved by your instances in your VPCs
+- Features:
+  - Load balancing via DNS (client load balancing)
+  - Health checks (limited)
+  - Routing policies (e.g. simple, failover, weighted)
+  - Pay per month, per hosted zone
+- Time-to-live (TTL)
+  - Caches DNS response in browser to reduce load on DNS
+  - High TTL (e.g. 24hrs) reduces load, but can have stale data
+  - Low TTL (e.g. 60secs) increases load, but data is fresher
+  - TTL required for each DNS record
+- CNAME can only point to non-root domains (i.e. _not_ `mydomain.com`)
+- Alias works for root and non-root domains
+- Alias records are free and have native health checks
+- Routing Policy
+  - Simple
+    - When you need to redirect to a single resource
+    - Doesn't have health checks
+    - If multiple values _are_ returned, the client chooses one at random
+      - Can be used for client-side load balancing
+      - Values can be from different regions
+  - Weighted
+    - Sends x% of requests to each possible server (calculated as % given weight number is of total weight)
+  - Latency
+    - Redirects to server with lowest latency for the client (i.e. the closest)
+    
