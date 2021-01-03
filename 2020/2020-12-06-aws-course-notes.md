@@ -1,3 +1,14 @@
+Points of Discussion
+
+- Pros/Cons of different auto-scaling options
+  - ASGs
+  - ECS
+    - w/ EC2
+    - Fargate
+    - Cluster Capacity Provider
+- Must enable ECS_ENABLE_TASK_IAM_ROLE in `/etc/ecs/ecs.config` to allow ECS tasks to endorse IAM roles?
+- ElasticBeanstalk seems good, but haven't heard of many people using it. Do many people us it? If not, why?
+
 # AWS Certified Developer
 
 ## I. AWS Fundamentals: IAM & EC2
@@ -328,7 +339,7 @@
   - Infrequently-accessed (EFS-IA): cost to retrieve files, but lower cost to store
   - Lifecycle management setting will automatically move files from Standard to EFS-IA after X number of days
 
-## 6. AWS Fundamentals: RDS & Aurora & ElastiCache
+## IV. AWS Fundamentals: RDS & Aurora & ElastiCache
 
 ### A. Relational Database Service (RDS)
 
@@ -472,7 +483,7 @@
     - Memory is full and data hasn't been used recently (LRU)
     - Time-to-live limit (i.e. configuration such that data only lasts X amount of time)
 
-## 7. Route 53
+## V. Route 53
 
 - Managed Domain Name System (DNS)
 - Common AWS DNS records:
@@ -507,4 +518,479 @@
     - Sends x% of requests to each possible server (calculated as % given weight number is of total weight)
   - Latency
     - Redirects to server with lowest latency for the client (i.e. the closest)
-    
+  - Health checks
+    - Unhealthy if fails 3 times in a row (default)
+    - Healthy if it succeeds 3 times in a row (default)
+    - Default interval = 30 secs
+    - Fast health check = 10 sec interval, but costs more
+    - Health checks can be linked to DNS queries (changing w/ Route53 DNS changes)
+  - Failover routing policy can be used for a primary and secondary DNS record to have a backup if health check fails.
+  - Geo-location routing policy: if user is located in X, route them to server Y (with default for locations without a policy)
+  - Multi-value routing policy
+    - Used for routing traffic to multiple resources (same domain, different IPs & health checks)
+    - Up to 8 healthy records returned per query (even if more exist)
+    - Not replacement of ELB, but contributes client-side load balancing
+
+
+## VI. Virtual Private Cloud (VPC) Fundamentals
+
+- Virtual network associated with specific region
+- Subnets partition the network inside the VPC (associated with specific AZ)
+  - Subnets can be public or private
+  - Route tables define access to, from, and among, subnets
+- Has a range if IPs (CIDR range)
+- Internet gateway (IGW) connects VPC to public internet
+  - Public subnet has route to the internet gateway
+- NAT gateway (AWS managed) or NAT instance (self-managed) give private subnets access to internet while still being private (i.e. unaccessible themselves)
+  - NAT goes inside public subnet, private subnet connects to the NAT, the NAT connects to public subnet's IGW
+- Network ACL (NACL) is a firewall to control traffic to/from subnet
+  - Attached to subnets
+  - Allow/Deny rules apply to specific IPs
+  - Stateless
+  - Like security groups, controls what traffic can reach resources
+    - SGs are stateful and operate at EC2 instance or ENI level
+- VPC flow logs include logs of all traffic flowing in/out of the VPC, subnets and Elastic Network Interface (ENI)
+  - For debugging network issues
+- VPC peering connects to VPCs as if they were part of same network
+  - CIDR ranges for VPCs must not have overlapping IP ranges
+  - Not transitive: A is connected to B is connected to C, but A cannot communicate with C unless they are directly connected as well
+- VPC endpoints allow you to connect to AWS services via private network when those services are outside the VPC
+  - VPC endpoint gateway for S3 & DynamoDB
+  - VPC endpoint interface for all other AWS services
+- Site-to-Site VPN
+  - Connects an on-premises VPN with an AWS VPC
+  - Automatically encrypted
+  - Goes over public internet
+- Direct Connect (DX)
+  - Physical connection from on-premises VPN to AWS VPC
+  - Over private network
+  - Requires a month to set up
+- Nether above can use VPC endpoints
+- 3-tier architecture: Route 53 DNS -> Public subnet Elastic Load Balancer -> Private subnet EC2 instances -> Data subnet DB/Cache
+- LAMP stack: Linux, Apache (web server), MySQL, PHP
+
+## VII. Amazon S3 Introduction
+
+- S3 bucket name must be globally unique
+- S3 is globally available, but a regional resource
+- Naming conventions
+  - No uppercase
+  - No underscore
+  - 3-63 characters long
+  - Not an IP address
+  - Start with letter or number
+- Object key is the full path to the file
+  - Composed of any directories inside the bucket (the prefix) and the object name
+- Max object size = 5TB
+- If object > 5GB, must use multi-part upload
+- Versioning
+  - Enabled at the bucket level
+  - Uploading file w/ same key doesn't overwrite the file, but creates a new version of it
+  - When enabling versioning, existing objects have version = null
+- S3 can host static websites
+
+### A. Encryption
+
+- SSE-S3: encryption w/ keys handled & managed by AWS S3
+  - Encrypted server-side w/ AES-256
+  - Use special header to set encryption when uploading file
+- SSE-KMS: use AWS Key Management Service
+  - KMS advantages: user control & audit trail
+  - Server-side encryption
+  - Also uses special header when uploading files
+- SSE-C: manage your own encryption keys
+  - Amazon does not have the key, you provide it yourself
+  - Must use HTTPS when uploading the file
+  - Must provide the encryption key in the headers for each HTTP request when uploading files
+  - Can only be done via CLI/API call, not console UI
+- Client-side encryption
+  - You encrypt the file before uploading it
+  - AWS has an encryption SDK for performing this
+- S3 has HTTP endpoint, but using HTTPS endpoint is recommended
+- Read after write consistency for PUT new objects (i.e. newly-uploaded objects are immediately available)
+  - Exception is if you perform a GET, then PUT, then GET, which is eventually consistent
+- DELETE and PUT for existing objects are eventually consistent (i.e. there's a delay between the change and GETting the updated object)
+
+### B. Security
+
+- User-based: IAM policies resctricting access
+- Resource-based:
+  - S3 bucket policies, apply cross-account
+  - Object Access Control List (ACL): object-level policies
+  - Bucket Access Control List (ACL): less-common form of bucket-level policies
+- A user can access an S3 object if their IAM policies permit it OR the resource policies permit it AND there's no explicit denial
+- Policies can grant access or enforce encryption of objects
+- You can block public access to buckets through policies or ACLs
+- Can use VPC endpoints to access privately
+- Can save access logs in an S3 bucket or CloudWatch
+
+### C. CORS
+
+- Origin: schema (protocol), host (domain), and port
+- CORS tells web browser to allow requests to other origins while visiting the main origin (doesn't allow by default)
+- Uses special headers to allow CORS
+- S3 bucket needs to enable CORS headers to enable cross-origin requests
+- S3 buckets have CORS settings, where you can define allowed origins, response headers, etc.
+
+## VIII. AWS CLI, SDK, IAM Roles & Policies
+
+- There's a policy simulator for testing IAM permissions
+- For AWS SDK, if you don't define a region, us-east-1 is used by default
+- Credentials priority when using an SDK:
+  1. Environment variables
+  2. Java system properties
+  3. CLI credentials file (`~/.aws/credentials`)
+  4. CLI config file (`~/.aws/config`)
+  5. Container credentials (for ECS tasks)
+  6. Instance profile credentials (EC2 instance profiles)
+- Different services have different rate limits (API calls per endpoint per second)
+  - For intermittent errors, use exponential backoff (retry mechanism included in the SDK)
+  - For consistent errors, request increase in limit from AWS
+- Service limits are the max number of instances of a service you can have on an account (e.g. there's a limit to number of EC2 instances you can run)
+- Calls to the AWS API need to be signed by credentials
+  - CLI & SDK do this automatically
+  - If making raw API calls, use Signature v4 to sign the requests
+  - HTTP header option uses `Authorization` header with credentials info
+  - Query string option adds query params with the same info as above
+
+### A. AWS CLI
+
+- If you get error "aws: command not found", it means `aws` is not in the PATH env var
+- Don't use personal credentials for AWS CLI on EC2 instances, give it an IAM role, with access policies, and that will be enough to use AWS CLI
+- It can take time for IAM role changes to propagate
+- CLI has --dry-run to test out commands
+- Decode error messages with STS command line (decode-authorization-message)
+- Instance metadata is so EC2 instances can know about themselves
+  - The URL for the info is http://169.254.169.254/latest/meta-data
+  - Internal to AWS (only accessible from inside an EC2 instance)
+  - Can get IAM role name, but not IAM policy
+  - This is how EC2 instances get access to resources via IAM roles: fetch temporary credentials from metadata & use those to call resource APIs
+- Use different profiles for different accounts, and `--profile` with CLI calls to use non-default profiles
+- To use MFA, call STS GetSessionToken to create temporary session: `aws sts get-session-token --serial-number <ARN of MFA device> --token-code <MFA token> --duration-seconds <how long the temp creds last>`
+  - Returns an access key, secret key, and session token
+- Credentials priority when using CLI:
+  1. Command line options
+  2. Environment variables
+  3. CLI credentials file (`~/.aws/credentials`)
+  4. CLI config file (`~/.aws/config`)
+  5. Container credentials (for ECS tasks)
+  6. Instance profile credentials (EC2 instance profiles)
+
+
+## IX. Advanced S3 & Athena
+
+### A. Advanced S3
+
+- MFA-Delete
+  - Requires MFA codes to do anything major in S3
+  - Requires object versioning to be enabled
+  - When enabled, requires MFA to:
+    - Delete object version
+    - Disable versioning
+  - Doesn't require MFA to:
+    - Enable versioning
+    - Listing deleted versions
+  - Can only be toggled by the bucket owner (i.e. 'root' account)
+  - Can only be enabled via CLI for now
+- Access Logging
+  - Can save S3 access logs in another S3 bucket
+  - Never set the monitored & logging bucket to be the same (infinite loop)
+- S3 Replication
+  - Asynchronous replication
+  - Requires versioning
+  - Can use Cross-Region Replication (CRR) or Same-Region Replication (SRR)
+  - Can be from different accounts
+  - After enabling, only new objects are replicated (not retroactive)
+  - Permanent DELETE operations are not replicated, but replication of delete marker operations ("soft delete") can be enabled in settings
+  - No chaining (i.e. replication operations cannot trigger other replication operations, meaning bucket 1 replicating into bucket 2 won't replicate into bucket 3)
+- Pre-signed URLs
+  - CLI can do it for downloads, must use SDK for uploads
+  - By default, valid for 1 hr (can change w/ arg)
+- S3 scales to 3,500 PUT/COPY/POST/DELETE per sec and 5,500 GET/HEAD per sec per prefix
+  - If you use SSE-KMS, its limits can affect S3 speed, because it encrypts/decrypts w/ each upload & download call
+  - KMS limit is 5,500/10,000/30,000 calls per sec (depending on region)
+- Multi-part upload: recommended for files > 100MB, required for > 5GB
+- S3 transfer acceleration (upload only): uploads to an edge location, then forwarded to your S3 bucket
+- Speed up downloads with S3 Byte-Range Fetches
+  - Breaks up file's bytes into chunks, allowing retries for partial failure
+- S3 Select: fetch data form CSV file with SQL, filtering by rows and/or columns
+  - Less processing on client-side
+- S3 can generate notifications for events (e.g. object upload, download)
+  - Can send these to SNS, SQS, or Lambda functions
+  - To ensure all events are sent, enable versioning (to avoid conflicts of multiple events on the same object)
+- AWS Athena
+  - Service to do analytics on S3 data files
+  - Uses SQL to query file data
+  - Charged per query + amount of data fetched
+  - Supports CSV, JSON, Avro, Parquet, ORC
+- Object Lock
+  - Write once, read many (WORM)
+  - Block object/archive change/deletion for a given amount of time
+  - Useful for compliance, data retention, auditing purposes
+- Glacier Vault Lock
+  - Like above, but also lock the policy to prevent changes
+
+### B. S3 storage classes
+
+- Standard
+  - General purpose
+  - High durability, high availability across AZs (almost never lose an object)
+- Standard Infrequent Access (IA)
+  - Infrequently accessed, but needed immediately when accessed
+  - Same durability as above, ever-so-slightly less availability
+  - Cheaper than above (assuming infrequent access)
+  - Has a retrieval fee
+- One Zone Infrequent Access
+  - Slightly lower availability, and not resisitant to an AZ failure
+  - About 20% cheaper than above
+- Amazon S3 Intelligent Tiering
+  - Service that automatically moves objects among access tiers to save costs
+  - Costs monthly fee
+- Amazon Glacier
+  - Low-cost for archiving/backup
+  - Long-term storage (10s of years)
+  - Very-low storage cost, but object retrieval costs money
+  - Objects are 'Archives' (up to 40TB files) and are stored in 'Vaults'
+  - 3 retrieval options:
+    - Expedited: 1-5 mins
+    - Standard: 3-5 hrs
+    - Bulk (multiple files): 5-12 hrs
+  - Archives stored for min of 90 days
+- Amazon Glacier Deep Archive
+  - Even cheaper than above
+  - Retrieval options:
+    - Standard: 12 hrs
+    - Bulk: 48 hrs
+  - Min storage duration = 180 days
+- Amazon S3 Reduced Redundancy Storage (deprecated)
+- Can create lifecycle rules to trigger actions on objects
+  - Transition actions: move objects among storage classes
+  - Expiration actions: delete objects
+  - Rules can be created for prefixes (only apply to certain files) or tags
+
+## X. CloudFront
+
+- Is a Content Delivery Network (CDN)
+- Caches content at edge locations
+- Includes DDoS protection, integration with AWS Shield, and AWS Web Application Firewall
+- Can expose external HTTPS and talk to internal HTTPS endpoints
+- When used with S3
+  - Can use Origin Access Identity for increased security
+    - Bucket is private, and only CloudFront can access the contents of the S3 bucket via IAM policies
+  - Can be used for uploads at the edge
+- Can be used with a custom origin: load balancer, EC2, S3 website, etc.
+  - Must be in a public security group
+- Can configure geographic restrictions (i.e. users in country X can/cannot access this resource)
+- Caching can be based on headers, session cookies, or query string params
+- Good idea to have two CloudFront distributions:
+  - One for static content with full caching
+  - One for dynamic content with more-careful caching rules
+- Can manually invalidate a cache by creating an 'invalidation'
+- HTTPS
+  - Viewer Control Policy (for connection between client & edge location)
+    - Redirect from HTTP to HTTPS or allow HTTPS only
+  - Origin Protocol Policy (for connection between edge location & origin)
+    - HTTPS only or match viewer (client) protocol
+  - Note: S3 websites don't support HTTPS (HTTP only)
+- To restrict access to CloudFront to certain users, use a Signed URL or Cookie
+  - Includes URL expiration, IP ranges that can access data, trusted signers (AWS accounts that can create signed URL/Cookie)
+  - Signed URL for individual file; signed cookie for multiple files
+- Signed URL
+  - Allow access to a path for any type of origin
+  - Account-wide key/pair, only root can manage it
+  - Accesses S3 objects via CloudFront as normal
+- Pre-signed URL
+  - Makes request as the account that created it
+  - Uses IAM key of the signing IAM principal
+  - Bypasses CloudFront to access S3 objects directly
+
+## XI. ECS, ECR, & Fargate (Docker in AWS)
+
+### A. Elastic Container Service (ECS)
+
+- ECS cluster is group of EC2 instances
+  - EC2s run ECS agent (Docker container)
+  - ECS agent registers its EC2 with the ECS cluster
+  - EC2s run special ECS-specific AMI
+- Creating an ECS cluster creates an Auto-Scaling Group that creates any associated EC2s
+- Types of ECS:
+  - ECS w/ self-managed EC2 instances
+  - Fargate (serverless)
+  - EKS (Kubernetes)
+- Task Definitions
+  - JSON file that tells ECS how to run a Docker container (basically, `docker run` args)
+  - Tasks need IAM roles to have permission to interact w/ AWS resources
+- ECS Service runs tasks across all EC2s in the cluster (balanced per Task Placement settings)
+- Can run multiple tasks: ECS tries to run within same EC2 or scales up to multiple if permitted by ASG (e.g. if there's a port # conflict)
+- ECS w/ load balancer
+  - Use Dynamic Port Forwarding in an Application Load Balancer when containers use random host ports (to avoid conflicts when running tasks in parallel)
+  - Can only add a load balancer on ECS creation
+  - Set up security group for ECS instances that accept traffic on all ports from the load balancer security group
+- Fargate
+  - Runs tasks (Docker containers) serverlessly (no managing EC2 instances)
+  - Must choose Fargate option when creating service and task(s)
+- IAM roles
+  - EC2 instance profile gives permissions to the ECS agent running inside the EC2 instance to perform ECS-related tasks (make API calls to ECS service, send logs to CloudWatch, pull images from ECR)
+  - ECS task roles give tasks permissions to interact w/ AWS resources based on what the task is for
+  - Define task roles in the Task Definition
+  - Must enable ECS_ENABLE_TASK_IAM_ROLE in `/etc/ecs/ecs.config` to allow ECS tasks to endorse IAM roles
+- Logging
+  - Integrates w/ CloudWatch
+  - Configure at task definition level
+  - Each container has own log stream
+  - IAM permissions set in the EC2 instance profile
+
+#### 1. ECS task placement
+
+- Task placement strategy & constraints determine where to place new tasks and where to remove them when scaling down
+- Only applies to ECS w/ EC2, not Fargate
+- Strategies are more guidelines, constraints are more-strictly followed
+- Task placement steps
+  1. Find EC2s that satisfy CPU, memory, and port requirements
+  2. Narrow down to EC2s that satisfy task placement constraints
+  3. Narrow down to EC2s that best satisfy task placement strategies
+  4. Place task in an EC2
+- Task placement strategies
+  - Binpack: place in EC2s w/ least available CPU or memory (minimises # of EC2s needed to save costs)
+  - Random: does what it says on the tin
+  - Spread: distributes tasks evenly across EC2s with a given attribute (e.g. all available AZs)
+  - Can mix/match strategies
+- Task placement constraints
+  - distinctInstance: place each task on a different EC2 (i.e. no more than one task per EC2)
+  - memberOf: place tasks on EC2s that satisfy a condition (uses Cluster Query Language, CQL)
+
+#### 2. Autoscaling
+- Auto-scaling settings are the same as for ASGs
+- ECS Service Scaling is at the task level, not the EC2 instance level (unlike ASGs)
+- Fargate bypasses this because it's serverless
+- Cluster Capacity Provider defines auto-scaling rules for EC2s within an ECS cluster
+  - Is associated with an ASG
+  - When you run a task/service, define a Capacity Provider Strategy (instead of 'Launch Type'), which allows the provider to provision infrastructure
+  - Smarter, more-flexible way of auto-scaling ECS service than standard ECS settings
+
+### B. Elastic Container Repository (ECR)
+
+- Private Docker image repository
+- Uses IAM for permissions
+- Logging in via CLI:
+  - v1: `$(aws ecr get-login ...)` (to execute the output of the command)
+  - v2: `aws ecr get-login-password ... | docker login ...` (to pass the password to `docker login`)
+  - Once logged in, use docker commands to push/pull
+
+## XII. AWS Elastic Beanstalk
+
+- Platform as a Service (PAAS) that bundles basic application infrastructure (load balancer, ASG, cache, etc.) and manages it for you
+- Beanstalk is free, you just pay for underlying services/instances
+- Instance configuration, deployment strategy are configurable, but Beanstalk manages them
+- Architecture models:
+  - Single instance deployment (dev environments)
+  - ALB + ASG (prod environments)
+  - ASG only (worker processes in prod environments)
+- Has 3 components
+  - Application
+  - Application version (each deployment has a version)
+  - Environment name
+- Deploy versions to environments and/or promote versions to the next environment (e.g. from `staging` to `production`)
+  - Application to environment is one-to-many
+- Can rollback application versions
+- Supports a variety of runtimes (e.g. Python, Go, Java, Docker container)
+- When creating an environment, can pick and choose which extra services you want (logging, load balancer, etc.)
+  - Cannot change load balancer type after environment creation
+  - To change load balancer type:
+    1. Create new environment w/ same options except LB (manually, can't use clone)
+    2. Deploy new environment
+    3. Switch traffic from old environment to new
+- Lifecycle policy
+  - Limited to 1,000 application versions
+  - Based on time (delete versions after X days) or space (delete all but the X newest versions)
+  - Current version will never be deleted
+  - Option to not delete code bundles from S3 (just deletes old versions from EB interface)
+- EB Extensions
+  - Replace console configuration w/ files in `.ebextensions/` in code bundle
+  - Files are YAML or JSON and end in `.config`
+  - Allows adding extra resources (ElastiCache, DynamoDB) that aren't available in the console
+    - These resources depend on the environment, so deleted environment means the resource gets deleted as well
+  - Can use CloudFormation here to provision anything in AWS
+- Can clone an EB environment (new env w/ same resources & configuration)
+- Can provision RDS via EB, but not ideal for production, because ties RDS lifecycle to EB lifecycle
+  - Better to create RDS separately and provide connection string to EB
+  - To migrate from EB RDS to independent RDS:
+    1. Create snapshot (precautionary measure)
+    2. In RDS console, protect the EB RDS from deletion
+    3. Create new EB environment without RDS, but using connection to existing RDS
+    4. Switch traffic to new EB environment
+    5. Terminate old EB environment
+    6. Delete CloudFormation stack manually (because delete will fail when trying to delete RDS)
+- Using Docker
+  - Can be based on Dockerfile (to build image) or Dockerrun.aws.json (to fetch existing image)
+  - Note: this does not use ECS (just Docker on EC2)
+  - Can use Multi-Docker Container to use ECS (requires Dockerrun.aws.json v2)
+- To use HTTPS
+  - Load SSL certificate onto the load balancer via the console, or via `.ebextensions/securelistener-alb.config`
+  - SSL certificates can be provisioned via AWS Certificate Manager (ACM) or CLI
+  - Must configure a security group to permit port 443
+  - Either configure instances to redirect to HTTPS or configure LB to redirect
+- For long tasks, use a dedicated worker environment
+  - Use `cron.yml` to set up scheduled tasks
+- Custom Platform allows for advanced configuration (OS, additional software, scripts, etc.)
+  - Generally for code languages not natively supported by EB
+  - Define AMI with `Platform.yml`, which uses Packer to build the AMI
+  - Difference from Custom Image (AMI), which customises existing EB platform, is this creates whole new platform
+
+### A. Deployments
+
+#### 1. Deployment modes
+
+- Single instance
+  - Includes one Elastic IP (mapping DNS to this IP), one EC2 instance security group, one ASG in one AZ, one RDS
+- High availability
+  - Includes load balancer (optional), one ASG across multiple AZs, multiple EC2 instance security groups (one per AZ), multi-AZ RDS
+
+#### 2. Deployment options for updates
+- All at once
+  - Deploys to all EC2s at same time
+  - Fastest deployment
+  - Requires downtime
+- Rolling
+  - Updates a few EC2s (or 'bucket') at a time, updating the next bucket after the current is healthy
+  - Bucket size (# of EC2s per bucket) is configurable
+  - No downtime, but diminished capacity during update
+- Rolling with additional batches
+  - Creates new instances with the update, with existing instances still running previous version
+  - Still updates a few EC2s at a time
+  - Guarantees full capacity during update
+  - Extra cost due to running extra EC2s than needed for full capacity during update
+- Immutable
+  - Creates new instances in a new ASG to deploy the update
+  - Switches from old EC2s/ASG to new once all the new EC2s are finished updating
+  - Highest cost (double capacity during update) and longest deployment (creates whole new ASG)
+  - Quick rollback in case of failures (just terminate new ASG)
+  - Process:
+    1. Create temporary ASG with one EC2
+    2. After health check passes, create rest of EC2s in temp ASG
+    3. Move new EC2s to current ASG
+    4. Once temp ASG is empty, terminate old EC2s from current ASG
+    5. Terminate temp ASG
+- Blue/Green Deployment
+  - Not a direct feature of Elastic Beanstalk
+  - Can be achieved manually via weighted traffic w/ Route53 to test new version, followed by switching 100% over to new version
+  - In Elastic Beanstalk, you can manually swap environment URLs to change which is being served in prod
+- Elastic Beanstalk can be managed with the EB CLI (simpler than the AWS CLI)
+- Deployment process
+  1. Need to zip code files & describe dependencies via relevant file (e.g. requirements.txt, package.json)
+  2. Upload zip file via console or CLI
+  3. Deploy
+  4. EB will deploy updated code to EC2s
+
+## XIII. AWS CI/CD
+
+-
+
+### A. CodeCommit
+
+### B. CodePipeline
+
+### C. CodeBuild
+
+### D. CodeDeploy
+
