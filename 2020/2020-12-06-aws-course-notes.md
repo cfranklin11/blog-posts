@@ -984,11 +984,37 @@ Points of Discussion
 
 ## XIII. AWS CI/CD
 
--
+- Tech stack for CI/CD (all covered under Orchestrate: AWS CodePipeline)
+  - Code (GitHub, AWS CodeCommit)
+  - Build (Jenkins CI, AWS CodeBuild)
+  - Test (Jenkins CI, AWS CodeBuild as well)
+  - Deploy (ElasticBeanstalk, AWS CodeDeploy)
+  - Provision (ElasticBeanstalk or user-managed EC2s)
 
 ### A. CodeCommit
 
+- AWS version control repository (private)
+- No size limit
+- Fully managed, highly available
+- Code always stays inside AWS (increased security/compliance)
+- Authentication via Git
+  - SSH keys
+  - HTTPS through AWS CLI Authentication Helper or generating HTTPS credentials
+  - MFA available
+- Authorization: Uses IAM policies
+- Encryption
+  - Automatically encrypted at rest with KMS
+  - Automatically encrypted in transit, because can only use HTTPS or SSH
+- Cross-account access: you use AWS IAM Role and the other person uses AWS STS (with AssumeRole API)
+- Trigger notifications with AWS SNS, AWS Lambda, or AWS CloudWatch Event Rules
+  - SNS/Lambda good for deletion of branches, pushes to master, notify build system
+  - CloudWatch good for PR updates, commit comments
+  - Notification target can be an SNS topic or Slack bot
+  - Define triggers based on repo actions that target SNS topic or Lambda
+
 ### B. CodePipeline
+
+- 
 
 ### C. CodeBuild
 
