@@ -1,13 +1,23 @@
 Points of Discussion
 
-- Pros/Cons of different auto-scaling options
-  - ASGs
-  - ECS
-    - w/ EC2
-    - Fargate
-    - Cluster Capacity Provider
-- Must enable ECS_ENABLE_TASK_IAM_ROLE in `/etc/ecs/ecs.config` to allow ECS tasks to endorse IAM roles?
-- ElasticBeanstalk seems good, but haven't heard of many people using it. Do many people us it? If not, why?
+- 4/1
+  - Pros/Cons of different auto-scaling options
+    - ASGs
+    - ECS
+      - w/ EC2
+      - Fargate
+      - Cluster Capacity Provider
+  - Must enable ECS_ENABLE_TASK_IAM_ROLE in `/etc/ecs/ecs.config` to allow ECS tasks to endorse IAM roles?
+- 18/1
+  - ElasticBeanstalk seems good, but haven't heard of many people using it. Do many people us it? If not, why?
+  - What are the pros/cons of AWS CodePipeline vs other self-hosted CI/CD services?
+    - Pros seem to be it'a all AWS, so integration/authentication is easier/better
+    - Cons seem to be shit UI/UX
+  - More detail/explanation?
+    - SNS/Lambda good for deletion of branches, pushes to master, notify build system
+    - CloudWatch good for PR updates, commit comments
+    - Seems to be "Git things" vs "Git service things"
+  - Mentioned Terraform, Chef, etc. while talking about CodeDeploy, then said that CodeDeploy _doesn't_ provision servers, which I thought was the main purpose of those other tools, so what are the similarities/differences exactly?
 
 # AWS Certified Developer
 
@@ -1014,9 +1024,99 @@ Points of Discussion
 
 ### B. CodePipeline
 
-- 
+- Orchestrates all the CI/CD tools/services
+- Organised into stages (e.g. build, test, deploy)
+  - Stages are broken up into action groups, which are further broken into actions
+- Optionally allow for manual approvals between stages
+- State changes (e.g. passed, failed, cancelled) can triggger CloudWatch Events, which can trigger SNS Notifications
+
+#### 1. Troubleshooting
+
+- State changes trigger CloudWatch events, which can create SNS notifications
+- On failure, you can see more info in the console
+- Use AWS CloudTrail to audit API calls to AWS services
+- When CodePipeline can't perform an action, make sure the IAM Service Role has necessary permissions (i.e. check the IAM Policies)
 
 ### C. CodeBuild
 
+- Fully managed (no servers for you to manage)
+- Billed only for build time used (i.e. no idle servers)
+- Integrates with other AWS service:
+  - KMS for encrypting artifacts
+  - IAM for build permissions
+  - VPC for network security
+  - CloudTrail for API calls logging
+- Can use Docker images to create custom build environments
+- Define instructions in `buildspec.yml`
+  - Env vars (secrets via SSM Parameter Store)
+  - Phases:
+    1. Install
+    2. Pre-build
+    3. Build
+    4. Post-build
+  - Artifacts
+  - Cache
+- Logs to S3 and AWS CloudWatch
+- Has metrics & alarms
+- Can reproduce CloudBuild locally
+- VPC
+  - By default, instances launched outside of VPC can't access it
+  - Configure VPC ID, Subnet ID, Security Group IDs to access a VPC
+
 ### D. CodeDeploy
 
+- For deploying to EC2s not managed by Elastic Beanstalk (or on-premises instances or Lambda or ECS)
+- EC2s must run CodeDeploy Agent
+  1. Agent polls CodeDeploy
+  2. CodeDeploy sends appspec.yml file
+  3. Agent pulls code from repo (S3 or GitHub)
+  4. EC2 runs deployment instructions for running app
+  5. Agent reports success/failure to CodeDeploy
+- Can be incorporated into CodePipeline & use artifacts from builds
+- Works with any application, auto-scaling, blue/green deployments (EC2s only), AWS Lambda
+- Does _not_ provision EC2 instances (they must exist already)
+- Components
+  - Application (i.e. the app name)
+  - Compute platform (e.g. on-premises instances, EC2, Lambda, ECS)
+  - Deployment configuration (rules for success/failure)
+  - Deployment group
+  - Deployment type (e.g. blue/green)
+  - IAM instance profile (IAM for the EC2s)
+  - Application revision (app code & appspec.yml)
+  - Service role
+  - Target revision
+- AppSpec
+  - File section (how to copy from S3/GitHub)
+  - Hooks (instructions for deploying the new version of the app):
+    1. ApplicationStop
+    2. DownloadBundle
+    3. BeforeInstall
+    4. AfterInstall
+    5. ApplicationStart
+    6. ValidateService (i.e. health check)
+- Deployment config
+  - One-at-a-time (if one instance fails, deployment stops)
+  - Half-at-a-time
+  - All-at-once
+  - Custom (e.g. Minimum healthy host = 75%)
+- Failures
+  - Instances stay in failed state till new deployment
+  - Failed instances are deployed to before healthy ones
+- Deployment targets
+  - Set of tagged EC2s (or ASG) to deploy to
+- Rollbacks
+  - Can do manual or automatic rollbacks
+  - Auto-rollbacks triggered by alarms
+  - Rollback deploys a new version (with new ID) of the last healthy deployment version
+
+### E. CodeStar
+
+- Integrated service that ties together all the CI/CD tools on AWS (along with GitHub)
+- Can integrate with issue trackers
+- Can integrate with Cloud9 for web IDE (or other IDEs)
+- Dashboard for all CI/CD stuff
+- Free service (just pay for resources used)
+
+## XIV. AWS CloudFormation
+
+- 
