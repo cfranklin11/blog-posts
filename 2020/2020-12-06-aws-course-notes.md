@@ -1119,4 +1119,108 @@ Points of Discussion
 
 ## XIV. AWS CloudFormation
 
+- Use templates (infrastructure as code) to replace manual process of creating/configuring resources
+- As usual, this is free, but you're charged for the resources that you use
+  - Can estimate resource costs with CloudFormation templates
+- Templates saved in S3, can't edit, must create new version to supersede previous
+- Creates stacks, which are identified by name
+  - Deleting a stack deletes all associated resources
+- CloudFormation automatically runs commands in correct order withou their having to be defined in the template (i.e. it doesn't matter what order you put them in)
+- Use ChangeSets to see how template changes will alter resources before deploying
+- Cross stack vs Nested stack
+  - Use cross stack (connected via exported/imported values) for resources with different lifecycles that need to reference each other
+  - Nested stacks are components that belong to other stacks (good for reuse of smaller stack configs)
+- StackSets are for creating/updating/deleting stacks across multiple accounts/regions w/ a single command
+
+### A. Resources
+
+- Required section of template
+- Represent the AWs resources/components manipulated by the template
+- Can reference other resources in the template
+- Each resource definition needs a Type and a list of Properties
+- No dynamic code-generation/definitions: everything hardcoded
+
+### B. Parameters
+
+- Define inputs for the template
+- Good for reusing templates in different contexts (e.g. companies, regions)
+  - If a value is likely to change in the future, make it a parameter to avoid having to re-upload entire template
+- `!Ref` function can be used to refer to the value of parameters or other resources
+- AWS has built-in pseudo-parameters (e.g. `AWS::AccountId`) that give general info about the account or stack
+
+### C. Mappings
+
+- Fixed, hard-coded variables that are useful for differentiating among environments, regions, etc.
+- For when you know the values in advance (i.e. which AMI to use per environment)
+- Use `!FindInMap` to get map values: `!FindInMap [ MapName, TopLevelKey, SecondLevelKey, ... ]`
+
+
+### D. Outputs
+
+- Optional outputs that can be exported, then imported to other stacks
+- Useful for linking stack resources (e.g. output network info, so other stacks can connect to it)
+- Good for collaboration across teams
+- Cannot delete a stack whose outputs are being used by other stacks
+- Exported output name must be unique per region
+- Export output with `Export: Name: <output name>`
+- Import value with `!ImportValue` function in another template
+
+### E. Conditions
+
+- Control creation or outputs based on environment, region, parameter, etc.
+
+
+### F. Intrinsic Functions
+
+- Ref
+  - Get reference to another value in template
+  - For paramaters, returns param value
+  - For resources, returns resource ID
+- Fn::GetAtt
+  - Get attribute value of a resource (`!GetAtt <resource name>.<attribute name>`)
+  - Available attributes vary by resource
+- Fn::FindInMap
+  - Get value from a `Mapping` object (can drill down for nested values)
+- Fn::ImportValue
+  - Get exported value by name
+- Fn::Join
+  - Join list of values into string w/ given delimiter
+- Fn::Sub
+  - String substitution with defined map object
+- Condition Functions (e.g. Fn::If, Fn::Not, Fn::Equals)
+  - Use to conditionally run other commands or define values
+
+### G. Rollbacks
+
+- Default is to auto-rollback if anything fails during creation/update (can be disabled)
+
+## XV. AWS Monitoring & Audit: CloudWatch, X-Ray and CloudTrail
+
+### A. CloudWatch
+
+#### 1. Metrics
+
+- Belong to namespaces
+- Dimension is an attribute of a metric (for filtering/aggregation)
+  - Can have up to 10 per metric
+- Have timestamps
+- Default EC2 monitoring is metrics every 5 mins
+  - Detailed Monitoring gets metrics every 1 min, but costs more
+- EC2 memory usage is not monitored by default, requires custom metric
+- Custom metrics can have dimensions
+  - Record metrics every 1 min by default, but High Resolution (StorageResolution parameter) can record up to every second, but costs more
+  - Use PutMetricData API call to record custom metric
+  - Use exponential backoff for throttle errors
+
+### B. EventBridge
+
 - 
+
+### C. X-Ray
+
+- 
+
+### D. CloudTrail
+
+-
+
