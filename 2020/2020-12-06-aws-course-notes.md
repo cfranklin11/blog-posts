@@ -1212,13 +1212,40 @@ Points of Discussion
   - Use PutMetricData API call to record custom metric
   - Use exponential backoff for throttle errors
 
+#### 2. Alarms
+
+- Used to trigger notifications based on metrics
+- Can send alarm triggers to Auto-Scaling, EC2 Actions, SNS Notifications, etc.
+- Various calculations available (sample, max, min, etc.)
+- Alarm states:
+  - OK (not triggered)
+  - INSUFFICIENT_DATA
+  - ALARM (triggered)
+- Monitoring period: length of time in seconds to evaluate metric (for calculations)
+  - High-resolution custom metrics only have 10 secs or 30 secs
+
+#### 3. Logs
+
+- Can send logs to CloudWatch via SDK (many AWS services send logs automatically)
+- CloudWatch logs can be archived in S3 buckets or streamed to data analytics services (e.g. ElasticSearch)
+- Structure:
+  - Log groups (usually represents an application)
+  - Log streams (series of logged events with a group)
+- Can define log expiration policies
+- Uses IAM permissions for sending logs
+- Can encrypt logs at rest with KMS at group level
+
+#### 4. Events
+
+-
+
 ### B. EventBridge
 
-- 
+-
 
 ### C. X-Ray
 
-- 
+-
 
 ### D. CloudTrail
 
