@@ -1211,7 +1211,9 @@ Points of Discussion
   - Record metrics every 1 min by default, but High Resolution (StorageResolution parameter) can record up to every second, but costs more
   - Use PutMetricData API call to record custom metric
   - Use exponential backoff for throttle errors
-
+- Metric Filters
+  - Used to filter/aggregate metrics, and can be used to trigger alarms
+  - Don't work retroactively, only as logs come in
 #### 2. Alarms
 
 - Used to trigger notifications based on metrics
@@ -1231,23 +1233,439 @@ Points of Discussion
 - Structure:
   - Log groups (usually represents an application)
   - Log streams (series of logged events with a group)
-- Can define log expiration policies
+- Can define log expiration policies at Log Group level
 - Uses IAM permissions for sending logs
 - Can encrypt logs at rest with KMS at group level
+- EC2 doesn't send logs/events to CloudWatch by default (requires an agent)
+- CloudWatch Logs Agent is older CW Unified Agent is newer (logs & metrics)
+  - Unified Agent has central configuration via SSM parameter store
 
 #### 4. Events
 
--
+- Can have scheduled events or reactive events (i.e. something happens, and an event is created) called Event Pattern
+- Creates a small JSON w/ event info
+- Can send events to different targets (SNS, AWS Lambda, etc.)
 
 ### B. EventBridge
 
--
+- Next eveolution of CloudWatch events
+- Multiple event buses:
+  - Default: events from AWS Services (CloudWatch Events)
+  - Partner: events from SaaS providers (e.g. DataDog, Auth0)
+  - Custom: events from your own applications
+- Analyses events to infer schema
+  - Schema Registry generates code for application that follows inferred event schema
+  - Versioned
+  - There are default schemas to use for AWS services
+- Extends CloudWatch events via its event buses
 
 ### C. X-Ray
 
--
+- Uses tracing to track requests across services
+  - Each component adds a 'trace'
+  - Annotations can be added to traces for more info
+- Segments are per-application/service info
+- Sub-Segments are more-details groupings within Segments
+- Trace is a sequence of Segments that form an end-to-end trace
+- Sampling is collection a % of traces (to reduce costs)
+- Annotations are key/value pairs for indexing & filtering traces
+- Metadata are key/value pairs that aren't indexed/searchable
+- X-Ray Daemon can send traces cross-account (with proper IAM setup)
+- Sampling
+  - By default, records first request / sec + 5% of all other requests
+  - First request is the 'resevoir', % is the 'rate' at which other requests are recorded
+  - Can configure quantity for resevoir (e.g. first 10 / sec) and rate %
+  - Can create other filtering rules (e.g. only POST requests, or requests to certain URLs)
+- Write APIs
+  - PutTraceSegments: uploads segment documents
+  - PutTelemetryRecords: uploads metric-related data
+  - GetSamplingRules: fetch sampling rules from AWS
+  - GetSamplingTargets & GetSamplingStatisticSummaries (advanced APIs related to sampling rules)
+- Read APIs
+  - GetServiceGraph: main trace graph
+  - BatchGetTraces: fetch list of traces based on IDs param
+  - GetTraceSummaries: fetch IDs & annotations for traces (can be filtered by timeframe)
+  - GetTraceGraph: fetch graph for one or more trace IDs
+
+#### 1. Enabling X-Ray:
+  - Basic steps:
+    1. Add X-Ray SDK to application code
+    2. Run the X-Ray daemon (e.g. on EC2) or enable X-Ray integration (e.g. on Lambda)
+  - Enable X-Ray Daemon:
+    - EC2: install X-Ray daemon via bash script provided
+    - ElasticBeanstalk:
+      - Enable in `.ebextensions` file
+      - Enable via console option
+    - ECS:
+      - Run an X-Ray Daemon Task (i.e. one X-Ray Docker container per EC2 instances)
+      - Alternatively, run X-Ray Daemon container as "sidecar" to app containers (i.e. one X-Ray container per app container)
+      - Fargate must use "sidecar" pattern
 
 ### D. CloudTrail
 
--
+- Tracks all events, API calls, etc. made within the AWS account
+- Enabled by default
+- Good for tracking changes to AWS resources (e.g. when something gets deleted)
 
+## XVI. AWS Integration & Messaging: SQS, SNS, & Kinesis
+
+- Each service represents a different message architectural model:
+  - SQS: queue model
+  - SNS: pub/sub model
+  - Kinesis: real-time streaming model
+
+### A. SQS
+
+- Managed service for decoupling applications (separates 'producers' and 'consumers')
+- No limit for throughput or quantity of messages in the queue
+- By default, messages last 4 days, with a max of 14 days
+- Has very low latency (< 10 ms)
+- Limit to 256KB per message
+- Sometimes sends duplicate messages (at-least-once delivery)
+- Messages can arrive out of order (best-effort ordering)
+- Consumer can pull up to 10 messages at a time
+- ASGs can scale based on queue length (CloudWatch metric that can trigger CloudWatch alarm) when consuming from an SQS queue
+- Security
+  - In-flight encryption with HTTPS
+  - At-rest encryption with KMS
+  - Uses IAM policies
+  - Uses SQS Access Policies (similar to S3 Bucket Policies)
+- Messages have a visibility timeout: after received, they are invisible to other services for an amount of time
+  - If a consumer takes too much time, a message can be processed twice
+  - A consumer can extend the timeout with ChangeMessageVisibility
+- Can set retry limit for messages that result in errors
+  - After limit, send messages to Dead-Letter Queue (DLQ) for debugging
+- Can delay messages before they appear in the queue (default is 0 secs)
+- Long polling can be used to wait for messages if the queue is empty
+  - Reduces # of calls, increases efficiency, & decreases latency
+  - Can wait between 1 and 20 secs
+  - Generally preferable to use long polling for 20 secs
+- SQS Extended Client
+  - Java library for enabling larger message size
+  - Uses S3 to store data & message to queue with reference to data
+- API calls to know
+  - CreateQueue (with MessageRetentionPeriod), DeleteQueue
+  - PurgeQueue
+  - SendMessage (with DelaySeconds), ReceiveMessage, DeleteMessage
+  - ReceiveMessageWaitTimeSeconds (i.e. perform long polling)
+  - ChangeMessageVisibility (i.e. change visibility timeout)
+  - Batch APIs: SendMessage, DeleteMessage, ChangeMessageVisibility
+#### 1. FIFO queue
+- Guarantees ordering (first-in-first-out)
+- Exactly once delivery of messages
+- Limited throughput (300 msg/s, 3,000 msg/s with batching)
+- Name must end in `.fifo`
+- De-duplication window is 5 mins (rejects any duplicate messages sent within 5 mins of original)
+- De-duplication methods
+  - Compare SHA-256 hashes of message bodies
+  - Provide a message ID (MessageDeduplicationId)
+- Message grouping
+  - Can assign a MessageGroupID to group related messages
+  - With multiple groups, ordering within groups is guaranteed, across groups it's not
+  - Idea is to have one consumer per group
+
+### B. SNS
+
+- Message producer "publishes" to an SNS topic, and consumers who "subscribe" to that topic will receive the message
+- Producer sends to one SNS topic, and all subscribers to that topic receive the message
+- Up to 10,000,000 subscribers per topic
+- Up to 100,000 topics
+- Subscribers can be:
+  - SQS
+  - HTTP endpoint
+  - Lambda
+  - Email service
+  - SMS messages
+  - Mobile notifications
+- Publishing
+  - Publish to SNS topic via SDK
+  - Direct publish to mobile apps (i.e. app notifications)
+- Same encryption and access policies as SQS
+- Available protocols for subscriptions:
+  - HTTP
+  - HTTPS
+  - Email
+  - Email-JSON
+  - SQS
+  - Lambda
+
+### C. Kinesis
+
+- AWS managed version of Apache Kafka
+- Useful for real-time (streaming) big data
+- Data is automatically replicated to 3 AZs
+- 3 services:
+  - Kinesis Streams: low-latency streaming at scale
+  - Kinesis Analytics: real-time analytics using SQL
+  - Kinesis Firehose: load streams into other services (e.g. Redshift, ElasticSearch) for long-term storage
+- Structure is that Streams feeds into Analytics and/or Firehose
+- Streams data is separated into shards (increase # shards for higher throughput)
+  - Write throughput: 1 MB/sec, or 1,000 messages/sec, per shard
+  - Read throughput: 2 MB/sec per shard
+  - Billing is per shard
+  - Shard count can be changed according to needs
+  - Records are ordered per shard (ordered within given shard, no guaranteed ordering across shards)
+- Data retained for 1 day by default (configurable up to 7 days)
+- Can reprocess/replay data if necessary
+- Can have multiple consumers of data
+- Data cannot be deleted from Kinesis (immutable)
+- Data can be processed in batches
+- Data gets processed with a message key
+  - Same key always goes to same shard (for correct ordering of that key's messages)
+  - Messages get an incrementing sequence number to ensure ordering
+  - Choose a well-distributed message key (i.e. without majority of data coming from a few IDs/groups) to avoid "hot shard" (i.e. overwhelming one shard that gets data from a key/ID with a lot of activity)
+- ProvisionedThroughputExceeded error means too much data
+  - Retries with backoff
+  - Increase number of shards
+  - Check partition key used for volume imbalance
+- Consumers can use CLI, SDK, but there's also Kinesis Client Library
+  - KCL uses DynamoDB to manage work
+  - KCL is for reading records from streams in distributed applications
+  - Each shard can be read by only one KCL instance
+- Data Analytics
+  - Uses SQL for querying data
+  - Managed, auto-scaling, real-time
+  - Pay for actual consumptions (like serverless)
+  - Can produce further streams from queried/transformed data
+- Firehose
+  - Fully managed, near-real-time (60 sec delay), auto-scaling
+  - Can save to a variety of data stores
+  - Supports many data formats, but conversion between formats costs extra
+  - Pay for actual usage
+
+## XVII. AWS Serverless: Lambda
+
+- Pay per request + how long the function runs for
+- Run up to 15 mins per request
+- Use up to 3GB of memory
+- Increasing RAM will also improve CPU & network
+- Main services to use for triggering Lambdas
+  - API Gateway (REST API to invoke functions via HTTP request)
+  - Kinesis (to perform data transformations)
+  - DynamoDB
+  - S3
+  - CloudFront (for Lambda@Edge)
+  - CloudWatch Events/EventBridge
+  - CloudWatch Logs
+  - SNS
+  - SQS
+  - Cognito (e.g. when a user logs in)
+- Various built-in Lambda IAM roles to allow interaction with other services
+  - Best practice: create one, specific execution role per Lambda function
+- Use resource-based policies to allow other services to invoke Lambdas (similar to S3 bucket policies)
+- Uses CloudWatch logs & metrics by default (assuming correct IAM role)
+  - Can optionally add X-Ray integration via config & use SDK to add tracing
+    - _X_AMZN_TRACE_ID: tracing header
+    - AWS_XRAY_CONTEXT_MISSING: LOG_ERROR by default
+    - AWS_XRAY_DAEMON_ADDRESS: <IP address>:<port> for X-Ray daemon
+- Can have 123MB to 3,008MB of RAM
+  - Increasing RAM limit increases vCPUs available
+- Default timeout is 3 secs, but can increase to 900 secs
+- Execution context is temp runtime environment for Lambdas
+  - Is maintained for a short time between invokations for reuse
+  - Includes `/tmp` directory (max size is 512MB) for transient file storage
+  - Best practice: initialise reusable objects  (e.g. DB or SDK client) outside handler function to improve performance
+- Can run up to 1,000 functions in parallel
+- Can configure "reserved concurrency" to limit number of invocations
+  - Synchronous: above limit returns 429 response
+  - Asynchronous: above limit retries, then sends to DLQ
+  - Limit applies to all Lambdas across the account (i.e. can run 1,000 total, not 1,000 per function)
+- Provisioned Concurrency can allocate concurrency to avoid "cold start"
+  - Can use Application Auto Scaling to manage concurrency
+- Must include dependencies w/ code bundle
+  - Up to 50MB directly to Lambda, larger saved in S3
+- Possible to define simple function code inside CloudFormation
+  - More common to save zip file in S3 and include reference in CF
+  - Need to include version ID in reference to S3 file
+- Each publish of a Lambda creates a new, immutable version (code + configuration)
+  - Aliases are mutable pointers to immutable versions
+  - Aliases allow blue/green by directing % of traffic to different versions
+  - Aliases can't refer to aliases, just versions
+- CodeDeploy can shift traffic from one version to another gradually over time (or all at once)
+  - Can also handle rollbacks
+- Limits (all are per-region):
+  - Memory: 138 - 3,008 MB (64MB increments)
+  - Max timeout: 900 secs (15 mins)
+  - Env vars: 4KB
+  - /tmp folder disk space: 512MB
+  - Concurrent executions: 1,000 (can be increased upon request)
+  - Max code bundle (compressed): 50MB (uncompressed = 250MB)
+
+### A. Synchronous invocations
+
+- When called via CLI, SDK, API Gateway, or Application Load Balancer
+
+#### 1. Application Load Balancer
+
+- Put Lambda in a target group
+- ALB converts request into JSON object to pass to Lambda
+- If you enable multi-header values in ALB, converts multiple values for same param key into an array of those values
+
+#### 2. Lambda@Edge
+
+- Deploy Lambdas with CloudFront CDN assets
+- Used to change CloudFront requests/responses:
+  - After CloudFront receives request from viewer (viewer request)
+  - Before CloudFront forwards request to origin (origin request)
+  - After CloudFront receives origin response
+  - Before CloudFront forwards response to viewer (viewer response)
+- Use cases
+  - Security & privacy
+  - Dynamic web application at the Edge
+  - SEO
+  - Route across origins & data centers
+  - Bot mitigation at the Edge
+  - Real-time image transformation
+  - A/B testing
+  - User authentication/authorization
+  - User prioritization
+  - User tracking/analytics
+
+### B. Asynchronous invocations
+
+- Event-based invocations (S3, SNS, CloudWatch)
+- These events are placed in an internal Lambda event queue
+- Lambda retries 3 times on errors:
+  - 1 min after first retry
+  - 2 min after second retry
+- Lambdas should be idempotent for this reason
+- Can create DLQ for Lambda events that error out
+- Can create EventBridge or CodePipeline events to invoke Lambdas
+- S3 events
+  - Can take seconds up to a few minutes to arrive
+  - Use versioning to guarantee each event gets a notification (unversioned object writes in quick succession can overwrite eachother and produce just one notification)
+
+### C. Event Source Mapping
+
+- Sources:
+  - Kinesis
+  - SQS
+  - DynamoDB
+- Records need to be fetched/polled by Lambda (i.e. Lambda is invoked synchronously)
+
+#### 1. Streams (Kinesis or DynamoDB)
+
+- Creates iterator for each shard (i.e. one Lambda per shard)
+- Can start with new items or from a timestamp or from beginning
+- Processed items aren't removed from stream
+- Batch processing to group data before passing to Lambda
+  - Can process batches in parallel (up to 10 per shard)
+- On error, re-run Lambda until it succeeds or items expire
+  - To guarantee in-order processing, all batches in given shard are paused until resolved
+
+### 2. SQS
+
+- Uses polling
+- Can process 1-10 messages per batch
+- Recommendation: set message visibility to 6x the Lambda timeout limit
+- Configure DLQ on the SQS (not Lambda)
+- On error, batches are returned to queue as individual items (can't guarantee same grouping for re-processing)
+- Occasionally receive duplicate items (even without errors)
+- Deletes item after processing
+- Lambda scales up by 60 instances/min
+- Can process up to 1,000 batches in parallel
+- SQS FIFO:
+  - Messages with same GroupID processed in order
+  - Lambda scales up to number of message groups
+
+### D. Destinations
+
+- Send Lambda results to another service
+- Can have different destinations for successful and failed invocations
+- Asynchronous:
+  - SQS
+  - SNS
+  - Another Lambda
+  - EventBridge bus
+- Event Source Mapping:
+  - SQS
+  - SNS
+- Recommendation: use Destinations instead of DLQs because more flexible
+
+### E. VPC
+
+- By default Lambda is not launched in your VPC
+- Can create Lambda inside VPC
+  - Lambda creates an ENI to access VPC resources (requires AWSLambdaVPCAccessExecutorRole)
+- Lambda in public subnet does not have access to public internet or public IP (unlike other resources)
+  - To give it public access, use NAT Gateway or NAT Instance
+
+### F. Lambda Layers
+  - Can be used for custom runtimes (e.g. C++, Rust)
+  - Can be used to store dependencies for re-use
+
+## XVIII. AWS Serverless: DynamoDB
+
+- NoSQL serverless DB
+- Highly-available with replication across 3 AZs
+- Made up of tables, each of which has a primary key
+- Each table can have infinite items (i.e. rows)
+- Items have attributes (i.e. column values)
+- Max item size is 400KB
+
+
+### A. Primary keys
+
+- Partition key:
+  - UUID per item
+  - must be 'diverse' to distribute across instances
+- Partition key + sort key:
+  - combination must be unique
+  - partition key groups data
+  - 'sort key' is also called 'range key'
+  - funtions similaraly to join tables
+- Any field can be null except partition and sort keys
+
+### B. Throughput
+
+- Have to provision Capacity Units to configure throughput
+- Separate CUs for read (RCUs) and write (WCUs)
+- Can set up auto-scaling and/or use "burst credit" for scaling
+- Raises ProvisionedThroughputException if you exceed capacity
+- 1 WCU = one write per second for item up to 1KB
+  - For fractions of KB, they get rounded up to calculate WCU (e.g. 6 items per sec at 4.3KB = 30 WCU)
+- Reads can be "eventually consistent" or "strongly consistent"
+  - Read type can be set in a parameter in the query
+- 1 RCU = one strongly-consistent read (or two eventually-consistent reads) per second for an item up to 4KB
+  - Like with WCUs, partials of 4KB get rounded up
+- WCUs & RCUs are split as evenly as possible among partitions
+- Common causes for exceeding throughput:
+  - hot keys
+  - hot partitions
+  - reading/writing larger items, etc.
+- Solutions for exceeding throughput:
+  - Exponential backoff
+  - Better distributeion of partition keys (so one partition isn't overloaded with requests)
+  - Caching with DynamoDB Accelerator (DAX)
+
+### Basic APIs
+
+- PutItem: Write data to DynamoDB (create  new or replace existing)
+- UpdateItem: update attributes of existing item
+- Supports conditional writes
+  - Helps with concurrent reads/writes
+  - No performance impact
+- DeleteItem: delete an item
+  - Can do conditional deletes
+- DeleteTable: deleta a whole table & its items
+- BatchWriteItem: up to 25 PutItem or DeleteItem in one call
+  - Limit 16MB of total data & 400KB per item
+  - DynamoDB automatically processes items in a batch in parallel
+  - Must retry failed items in a batch yourself
+- GetItem: fetch items based on primary key
+- ProjectionExpression: defines which fields to fetch when using GetItem
+- BatchGetItem: fetch items in batches
+  - Up to 100 items per batch
+  - Up to 16MB of total item memory
+  - Items retrieved in parallel
+- Query: fetch & filter items
+  - Query by the following:
+    - PartitionKey value equality (i.e. '=' only)
+    - SortKey value equality or range (e.g. '=', '>', '<='), optional
+    - FilterExpression for client-side filtering
+  - Returns up to 1MB of data or requested # of items (whichever is lower), then use pagination for more
+  - More efficient way of fetching data
+- Scan: fetch entire table, then filter items (inefficient)
+  - Returns up to 1MB of data or requested # of items (whichever is lower), then use pagination for more
+  - Consumes a lot of RCU
+  - Use parallel scans to process multiple partitions for higher throughput (but more RCUs)
