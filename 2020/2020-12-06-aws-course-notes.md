@@ -1602,7 +1602,37 @@ Points of Discussion
 - Each table can have infinite items (i.e. rows)
 - Items have attributes (i.e. column values)
 - Max item size is 400KB
-
+- Can use conditional update/delete, ensuring item hasn't changed before changing it yourself
+  - Called optimistic locking/concurrency DB
+- Time to Live (TTL) auto-deletes old items (based on timestamp)
+  - Doesn't use RCU/WCU, so no extra cost
+  - Enabled per row by adding date to TTL column of item
+  - Deletes within 48hrs of expiration (i.e. not immediately)
+- Can read or change data inside a transaction
+  - Uses 2x WCU/RCU
+- Like ElastiCache, can store session info
+  - ElastiCache is fully in-memory
+  - DynamoDB is serverless (so, autoscaling)
+  - EFS must be attached to EC2 instances as network drive
+  - EBS & Instance Store only work for local caching (not shared across apps/servers)
+- Write Sharding: if you have few partition key values, add random suffix to key to spread items across shards
+- Wite Types:
+  - Concurrent: last write wins
+  - Conditional: first write wins (because condition is based on original value of attribute)
+    - AKA "optimistic locking"
+  - Atomic: values changes are relative (e.g. +1, -3), so both writes increment/decrement value
+  - Batch: make multiple writes per call
+- Large objects pattern:
+  - Store large data in S3 & save metadata in DynamoDB
+  - Client fetches metadata & uses that to find/fetch data from S3
+- Indexing S3 objects
+  - Store S3 metadata in DynamoDB for better filtering/searching of objects (e.g. by a given attribute instead of just ID)
+- To delete all items, fastest/most-efficient to drop & recreate table
+- Use DataPipeline + EMR to copy a DynamoDB table
+  - Another option is to create backup, then restore it with new name
+- A table can be globally-available (multi-region, fully replicated)
+- Amazon DMS helps migrate from other data stores (Mongo, Oracle, S3) to DynamoDB
+- Local instance for development is available
 
 ### A. Primary keys
 
@@ -1638,7 +1668,7 @@ Points of Discussion
   - Better distributeion of partition keys (so one partition isn't overloaded with requests)
   - Caching with DynamoDB Accelerator (DAX)
 
-### Basic APIs
+### C. Basic APIs
 
 - PutItem: Write data to DynamoDB (create  new or replace existing)
 - UpdateItem: update attributes of existing item
@@ -1669,3 +1699,219 @@ Points of Discussion
   - Returns up to 1MB of data or requested # of items (whichever is lower), then use pagination for more
   - Consumes a lot of RCU
   - Use parallel scans to process multiple partitions for higher throughput (but more RCUs)
+
+### D. Indexes
+
+#### 1. Local Secondary Index (LSI)
+
+- Alternate range key for table, local to the partition key
+  - Makes it possible to query by partition key + LSI (similar to sort key)
+- Up to five LSIs per table
+- Sort key must be one scalar attribute (String, Number, or Binary)
+- Must be defined at table-creation time
+- Unlike GSI, uses same WCUs as rest of table, so no domino-effect throttling
+
+#### 2. Global Secondary Index (GSI)
+
+- Define new partition key and (optional) sort key
+- Basically creates a new table based on the existing table
+  - Automatically projects partition & sort key
+  - Can project some or all attributes from existing table
+  - Defines one attribute as new partition key to be able to query by that attribute
+- Must define WCU/RCU for GSI
+- Unlike LSIs, can create/modify GSIs after table creation
+- If GSI writes get throtted, then original table gets throttled too
+  - Even if original table still has spare WCUs
+
+### E. DynamoDB Accelerator (DAX)
+
+- Seamless caching for DynamoDB
+- Solves hot-key problem (too many reads of a particular key)
+- Default 5 min TTL cache
+- Up to 10 nodes in cache cluster (must provision in advance)
+  - Recommended at least 3 nodes across 3 AZs for production
+- All the usual security (IAM, KMS) and logging (CloudWatch)
+- Use instead of ElastiCache for basic DB query caching
+  - Use ElastiCache for more-advanced caching like calculations/aggregations on DB results
+
+### F. DynamoDB Streams
+
+- Represents a change log for DynamoDB items that can be read, and reacted to, by other services
+- 24hr data retention
+- Configure what data gets written to streams:
+  - KEYS_ONLY: key of the modified item
+  - NEW_IMAGE: modified item after change
+  - OLD_IMAGE: modified item before change
+  - NEW_AND_OLD_IMAGE: both new and old versions of item
+- Uses shards like Kineses, but not provisioned (automated by AWS)
+- Once enabled, records are not backfilled
+- Use EventSourceMapping to trigger Lambdas from a DynamoDB stream
+
+### G. DynamoDB CLI
+
+- `--projection-expression`: a subset of attributes to retrieve (instead of the entire item)
+- `--filter-expression`: filter the results
+  - Use `--expression-attribute-values` to insert variables into the expression
+- Pagination options:
+  - `--page-size`: fetch full data set, but break up request into multiple calls (under the hood) to avoid timeouts
+  - `--max-items`: max number of results returned per page. Returns `nextToken` with data
+  - `--starting-token`: starting point for next batch of requested data (from `nextToken` of previous call)
+
+## XIX. API Gateway
+
+- RESTful API to invoke Lambda functions
+- Supports WebSocket for streaming data
+- API versioning
+- Different environments
+- Handles Authentication/Authorization
+- API keys for throttling
+- Swagger/Open API to define/document
+- Generate SDK/API specifications
+- Cache API responses
+- In addition to Lambdas, can expose an underlying HTTP API
+- Can trigger any other AWS Service (e.g. Step Functions, SQS)
+- Endpoint types:
+  - Edge-Optimized (default): uses CloudFront Edge to faster responses around the world
+  - Regional (can still manually set up CloudFront)
+  - Private: only accessible within the same VPC
+- Can import existing Swagger or Open API spec to create API
+  - Can export spec files from API Gateweay
+- Caching
+  - Default TTL is 300 secs (min = 0, max = 3,600)
+  - Defined per stage, but can override to define per method
+  - Costs money, so only makes sense for use in production
+  - Can manually invalidate cache
+- Create usage plans to monitor client usage (e.g. for subscription service)
+  - Monitor access by associating API keys with usage plans
+  - Set per-client access limits & speed & throttling
+  - Limit access to certain methods
+- HTTP API
+  - Low-latency, proxy for Lambda or HTTP
+  - Lower cost than REST API
+  - Supports OIDC, OAuth 2.0, & CORS
+  - No usage plans or API keys for monitoring users
+- REST API
+  - More features than HTTP (per the features described in this section)
+  - No OAuth 2.0 support
+- WebSocket API
+  - Two-way interaction for real-time applications (chat, games, etc.)
+
+
+
+### A. Stages & Deployment
+
+- Need to make a 'deployment' for changes to take effect
+- Deploy to stages (as many as you want)
+- Can roll back to earlier stage
+- Use Stage Variables to configure stuff (like environment variables)
+  - Are exposed to Lambda via context object param
+  - Can be interpolated into API Gateway routes
+- Can create a Canary deployment that directs % of traffic to new version/stage (blue/green deployment for serverless)
+  - Can 'promote' the Canary to make new version 100% of traffic
+
+### B. Integration types
+
+- MOCK: sends response without forwarding request to backend (for testing/development only)
+- HTTP / AWS (Lambda & Services): forwards request to an app or service
+  - Must configure request & response with any required data mappings (via mapping templates)
+- AWS_PROXY: request is turned into Lambda input
+  - Request is passed directly to Lambda (no mappings)
+- HTTP_PROXY: request is passed directly to the backend app/service
+  - Response is passed directly to the client
+- Common use case for mapping templates is to translate an XML request for a JSON API, then the JSON response into XML for the client
+
+### C. Logging & Tracing
+
+- Logs to CloudWatch Logs
+  - Enabled per stage level
+- Can enable X-Ray tracing
+- Can use CloudWatch Metrics:
+  - CacheHitCount / CacheMissCount: for cache efficiency
+  - Count: request count
+  - IntegrationLatency: how long it takes to receive responses from backend
+  - Latency: how long it takes to return response to client
+- Throttling
+  - Limit 10,000 requests per second across whole API (soft limit)
+  - Can set stage or method limits to avoid one using whole quota
+
+### D. Authentication & Authorization
+
+- Can use IAM to access an API Gateway
+  - Uses Sig v4 capability, with IAM credentials in headers
+  - Can use resource policies (particularly for giving cross-account acess)
+  - Mostly for internal users with IAM roles
+- Can use Cognito to authenticate users from User Pool
+  - Authorization set at API Gateway method level
+  - AWS auth services, so doesn't require custom code
+  - Mostly for external users
+- Can use Lambda Authorizer
+  - Uses bearer token (e.g. JWT, OAuth) from 3rd-party auth service
+  - API Gateway passes token to Lambda, which verifies it with 3rd-party service (you have to code this part)
+  - Lambda returns IAM Principal & Policy to API Gateway
+  - Most flexible, but requires most work/maintenance
+
+## XX. Serverless Application Model (SAM)
+
+- SAM YAML generates more-complicated CloudFormation YAML
+- Supports full CloudFormation functionality
+- Transform Header indicates SAM template:
+  - Transform: 'AWS::Serverless-2016-10-31'
+- Resource types (in the YAML template):
+  - AWS::Serverless::Function (Lambda)
+  - AWS::Serverless::Api (API Gateway)
+  - AWS::Serverless::SimpleTable (DynamoDB table)
+- Package & deploy:
+  - `sam build`: fetch dependencies & create local generated files
+  - `aws cloudformation package` (or `sam package`)
+  - `aws cloudformation deploy` (or `sam deploy`)
+- SAM Policy Templates
+  - Templates to apply permissions to Lambdas
+  - Examples:
+    - S3ReadPolicy
+    - SQSPollerPolicy
+    - DynamoDBCrudPolicy
+  - Takes form of Properties -> Policies -> <list of policies>
+- Uses CodeDeploy to update Lambdas (can configure per usual CodeDeploy setup)
+
+## XXI. Cognito
+
+- For tracking auth/identity across apps (e.g. mobile & web)
+
+### A. Cognito User Pools
+
+- Serverless database for user info
+- Login via username/password
+- Returns JWT on login
+- Includes:
+  - Password reset
+  - Email & phone # verification
+  - Multi-Factor Auth (MFA)
+  - Federated identities (one user across multiple accounts like Google, Facebook, etc.)
+  - Block users with compromised credentials
+- Integrates with 3rd-party identity providers via plugins
+- Integrates with API Gateway & Application Load Balancer
+- Can create a semi-customisable signup/signin page
+  - Cannot customise the JS that runs on the page
+- Can trigger Lambdas based on signup/signin lifecycle hooks
+
+### B. Cognito Identity Pools (Federated Identities)
+
+- Give identities to users to temporarily access AWS resources (directly or through API Gateway)
+- Can get identities from:
+  - 3rd-party providers (e.g. Google, Facebook)
+  - Users from Amazon Cognito
+  - OpenID Connect or SAML providers
+  - Developer Authenticated Identities (custom login server)
+  - Guest access (unauthenticated)
+- Can define default IAM role for authenticated & guest users
+  - Can define rules based on user ID for fine-grained roles/access
+- IAM credentials come from STS
+- Roles must have a "trust" policy of Cognito Identity Pools
+
+### C. Cognito Sync
+
+- Deprecated (in favour of AWS AppSync)
+- Cross-device synchronisation of identity data
+- Push Sync: silently notify all devices when identity data changes
+- Cognito Stream: stream data from Cognito into Kinesis
+- Cognito Events: trigger Lambdas with event hooks
