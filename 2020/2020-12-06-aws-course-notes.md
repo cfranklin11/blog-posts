@@ -1915,3 +1915,91 @@ Points of Discussion
 - Push Sync: silently notify all devices when identity data changes
 - Cognito Stream: stream data from Cognito into Kinesis
 - Cognito Events: trigger Lambdas with event hooks
+
+## XXII. Step Functions & AppSync
+
+### A. Step Functions
+
+- For connecting multiple Lambdas into a visual workflow that represents a state machine
+- Uses JSON to define the state machine
+- Structured as sequence, parallel, conditions, timeouts, or error handling
+- Also integrates with EC2, ECS, etc
+- Can have a human approval step
+- Unhandled errors cause whole flow to fail
+  - Can be retried (Retry)
+  - Can add error handling step (Catch)
+- Standard workflows can last up to 1 year and permit up to 2,000 starts per second
+- Express workflows can last up to 5 mins and permit up to 100,000 starts per second
+
+### B. AppSync
+
+- Managed service that uses GraphQL
+  - Upload a GQL schema to create it
+- Can combine data from multiple sources
+  - Integrates with DynamoDB, Aurora, ElasticSearch, etc.
+- Can use WebSockets for real-time data
+- Can synchronise backend data with local mobile app data
+- Authorization
+  - API_KEY
+  - AWS_IAM (users, roles, cross-account)
+  - OPENID_CONNECT (OAuth provider)
+  - AMAZON_COGNITO_USER_POOLS
+
+## XXIII. Advanced Identity
+
+### A. Security Token Service (STS)
+
+- Grants limited, temporary access to AWS resources
+- Functions:
+  - AssumeRole: user assumes the given role
+  - AssumeRoleWithSAML: credentials for users logged in with SAML
+  - AssumeRoleWithWebIdentity: credentials for users logged in with 3rd-party ID provider (Google, Facebook, etc.)
+    - No longer recommended (use Cognito Identity Pools instead)
+  - GetSessionToken: for MFA or AWS root user
+    - Define IAM policy using `aws:MultiFactorAuthPresent: true`
+    - Returns: Access ID, secret key, session token, and expiration date
+  - GetFederationToken: temporary credentials for a federated user
+  - GetCallerIdentity: IAM details (user, role) used in API call
+  - DecodeAuthorizationMessage: decode error message when API call is rejected
+
+### B. Advanced IAM (Authorization Model, Evaluation of Policies)
+
+- Permission flow:
+  1. If there's an explicit DENY, it's denied
+  2. If there's an explicit Allow, it's allowed
+  3. It's denied
+- Interaction of IAM policies & S3 bucket policies
+  - Permission is based on the union of policies (i.e. combines all permissions together). This combined policy is then evaluated.
+  - This means a DENY in either results in denied; an ALLOW in either (without a DENY) results in allowed
+- Can use interpolation (`${aws:username}`) to create dynamic policies
+- IAM policy types
+  - AWS Managed Policy
+    - Maintained & updated automatically by AWS
+    - Good for power users and administrators
+  - Customer Managed Policy
+    - Considered best practice
+    - Re-usable, version controlled, can be rolled back
+  - Inline
+    - Strict one-to-one relationship between policy & user
+    - Deleted if IAM user is deleted
+- We pass IAM roles to services when we set them up
+  - The service then assumes the role to perform actions
+  - This requires iam:PassRole (and often iam:GetRole)
+- A trust policy determines which services can assume which roles (i.e. roles have trusted entities, aka services)
+
+#### 1. AWS Directory Services
+
+- Microsoft Active Directoy is found on Windows Servers
+  - DB of objects (e.g. User, Accounts, Computers)
+  - Centralized security management & admin
+  - Objects organised into 'trees', and trees into 'forests'
+- AWS Managed Microsoft AD
+  - Can manage uses directly in AWS
+  - Can make trusted connections with on-premise AD
+  - Supports MFA
+- AD Connector
+  - Directory Gateway to redirect to on-premise AD (i.e. proxy for on-premise AD)
+  - Users managed on the on-premise AD
+- Simple AD
+  - AD-compatible managed directory on AWS
+  - Cannot connect to on-premise AD
