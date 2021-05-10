@@ -1915,3 +1915,210 @@ Points of Discussion
 - Push Sync: silently notify all devices when identity data changes
 - Cognito Stream: stream data from Cognito into Kinesis
 - Cognito Events: trigger Lambdas with event hooks
+
+## XXII. Step Functions & AppSync
+
+### A. Step Functions
+
+- For connecting multiple Lambdas into a visual workflow that represents a state machine
+- Uses JSON to define the state machine
+- Structured as sequence, parallel, conditions, timeouts, or error handling
+- Also integrates with EC2, ECS, etc
+- Can have a human approval step
+- Unhandled errors cause whole flow to fail
+  - Can be retried (Retry)
+  - Can add error handling step (Catch)
+- Standard workflows can last up to 1 year and permit up to 2,000 starts per second
+- Express workflows can last up to 5 mins and permit up to 100,000 starts per second
+
+### B. AppSync
+
+- Managed service that uses GraphQL
+  - Upload a GQL schema to create it
+- Can combine data from multiple sources
+  - Integrates with DynamoDB, Aurora, ElasticSearch, etc.
+- Can use WebSockets for real-time data
+- Can synchronise backend data with local mobile app data
+- Authorization
+  - API_KEY
+  - AWS_IAM (users, roles, cross-account)
+  - OPENID_CONNECT (OAuth provider)
+  - AMAZON_COGNITO_USER_POOLS
+
+## XXIII. Advanced Identity
+
+### A. Security Token Service (STS)
+
+- Grants limited, temporary access to AWS resources
+- Functions:
+  - AssumeRole: user assumes the given role
+  - AssumeRoleWithSAML: credentials for users logged in with SAML
+  - AssumeRoleWithWebIdentity: credentials for users logged in with 3rd-party ID provider (Google, Facebook, etc.)
+    - No longer recommended (use Cognito Identity Pools instead)
+  - GetSessionToken: for MFA or AWS root user
+    - Define IAM policy using `aws:MultiFactorAuthPresent: true`
+    - Returns: Access ID, secret key, session token, and expiration date
+  - GetFederationToken: temporary credentials for a federated user
+  - GetCallerIdentity: IAM details (user, role) used in API call
+  - DecodeAuthorizationMessage: decode error message when API call is rejected
+
+### B. Advanced IAM (Authorization Model, Evaluation of Policies)
+
+- Permission flow:
+  1. If there's an explicit DENY, it's denied
+  2. If there's an explicit Allow, it's allowed
+  3. It's denied
+- Interaction of IAM policies & S3 bucket policies
+  - Permission is based on the union of policies (i.e. combines all permissions together). This combined policy is then evaluated.
+  - This means a DENY in either results in denied; an ALLOW in either (without a DENY) results in allowed
+- Can use interpolation (`${aws:username}`) to create dynamic policies
+- IAM policy types
+  - AWS Managed Policy
+    - Maintained & updated automatically by AWS
+    - Good for power users and administrators
+  - Customer Managed Policy
+    - Considered best practice
+    - Re-usable, version controlled, can be rolled back
+  - Inline
+    - Strict one-to-one relationship between policy & user
+    - Deleted if IAM user is deleted
+- We pass IAM roles to services when we set them up
+  - The service then assumes the role to perform actions
+  - This requires iam:PassRole (and often iam:GetRole)
+- A trust policy determines which services can assume which roles (i.e. roles have trusted entities, aka services)
+
+#### 1. AWS Directory Services
+
+- Microsoft Active Directoy is found on Windows Servers
+  - DB of objects (e.g. User, Accounts, Computers)
+  - Centralized security management & admin
+  - Objects organised into 'trees', and trees into 'forests'
+- AWS Managed Microsoft AD
+  - Can manage uses directly in AWS
+  - Can make trusted connections with on-premise AD
+  - Supports MFA
+- AD Connector
+  - Directory Gateway to redirect to on-premise AD (i.e. proxy for on-premise AD)
+  - Users managed on the on-premise AD
+- Simple AD
+  - AD-compatible managed directory on AWS
+  - Cannot connect to on-premise AD
+
+## XXIV. Security & Encryption
+
+- Encryption in Flight (SSL): encrypted before sending, decrypted after receiving
+  - Protects agains man-in-the-middle (MITM) attacks
+- Server-side Encryption at Rest: encrypted after receiving, decrypted before sending to client
+  - Uses a data key to encrypt/decrypt, usually managed by a service (e.g. KMS)
+- Client-side Encryption: encrypted by client, never decrypted by server, eventually encrypted by receiving client
+
+### A. KMS
+
+- Integrates into basically all AWS services for data encryption
+- Symmetric (AES-256 keys): single encryption key for encrypt/decrypt
+  - Standard for encryption in AWS services
+  - Necessary for envelope encryption
+- Asymmetric (RSA & ECC key pairs): public key for encryption, private key for decryption
+  - Use case: outside users, without access to KMS, encrypt data before sending
+- Always store secrets as encrypted, never plain text
+- Limit of 4KB per encryption call (> 4KB requires envelope encryption)
+- IAM access to KMS:
+  - Key policy permits user
+  - IAM policy allows the API calls
+- Keys are limited to the region in which they're created
+  - When transferring snapshots across regions, they have to be re-encrypted with a key in the destination region
+- Key policies are similar to S3 bucket policies
+  - Exception is that they are required to access the key at all
+  - Default policy gives full access to root user
+  - Can give access to other users via IAM policies
+- Copying snapshots across accounts
+  - Create an encrypted snapshot in Account A
+  - Attach a KMS key policy that permits cross-account access
+  - Share the encrypted snapshot with Account B
+  - In Account B, create a copy of the snapshot & encrypt it with a key from Account B
+  - Create a volume from the snapshot
+- Quota is shared across all KMS calls per account per region
+  - This includes called made by AWS services on your behalf
+  - When using GenerateDataKey, you can use DEK caching to save calls
+
+
+#### 1. Custom Master Keys (CMK)
+
+- Symmetric encryption keys
+- Use CloudTrail to audit key usage
+- 3 types:
+  - AWS default CMK: free
+  - Custom key created in KMS: $1/month
+  - Custom outside key imported into KMS (must be 256-bit symmetric): $1/month
+- ~$0.03/10,000 KMS calls
+- Use case: whenever you want to share sensitive data (e.g. passwords, keys)
+- CMK can never be accessed directly for added security and can be rotated
+- For secrets > 4KB, use Envelope Encryption
+  - Use GenerateDataKey API to do this
+  - To encrypt:
+    - Generating a Data Encryption Key (DEK) returns plaintext & encrypted version of the DEK
+    - Client-side, encrypt the large file with the plaintext DEK
+    - Create a final file that includes encrypted DEK & encrypted large file
+  - To decrypt:
+    - Send encrypted DEK to KMS
+    - Client-side, use returned plaintext DEK to decrypt encrypted large file
+- AWS has Encryption SDK/CLI to simplify this process
+- Use GenerateDataKeyWithoutPlaintext to create a DEK that gets saved for later use
+- Use GenerateRandom to create random byte string
+
+### B. S3
+
+- Force SSL by including `aws:SecureTransport: false` condition in a `DENY` effect.
+- Force SSE-KMS encryption:
+  - Deny any call that lacks an encryption header
+  - Dany any call that has an incorrect encryption header
+- S3 bucket key
+  - Reduces KMS calls by 99%
+  - CMK generates the S3 bucket key, which creates data keys to encrypt files
+
+### C. SSM
+
+- Version tracking of configurations/secrets changes over time
+- Can encrypt secrets in parameter store via KMS
+- Use hierarchy to organise parameters (similar to file system structure)
+- Can give parameters expiration dates via TTL parameter
+- Secrets Manager
+  - Can force rotation of secrets
+  - Can automate generation of rotated secrets via Lambda
+  - Integration with RDS for storing of DB credentials
+  - Encrypted with KMS
+
+### D. CloudWatch Logs
+
+- Encryption enabled at log group level
+- Must use CLI (not available in the console)
+- Have to add CW service to the key policy in KMS to get needed permissions
+
+### E. CodeBuild
+
+- Can set env vars to refer to Parameter Store or Secrets Manager instead of plain text
+
+## XXV. Other AWS Services
+
+### A. Simple Email Service (SES)
+
+- Send/receive emails
+- Integrates with S3, SNS, Lambda, IAM
+
+### B. Database Summary
+
+- RDS: relational databases, OLTP
+- DynamoDB: NoSQL serverless DB
+- ElastiCache: in-memory DB (caching, sessions)
+- Redshift: OLAP analytics processing (data warehouse/lake)
+- Neptune: graph DB
+- DMS: database migration service
+- DocumentDB: MongoDB service
+
+### C. Amazon Certificate Manager (ACM)
+
+- Manage SSL/TLS certificates
+- Free for public TLS certificates (supports paid private TLS)
+- Automatic TLS renewal
+- Integrates with ALB, API Gateway, etc.
+
